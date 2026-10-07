@@ -49,8 +49,11 @@ Prior specs: visual-production-design (forest concept), mobile-upgrade-design.
   ground geometry (terrain, not an object) dressed with GLB rocks/cliffs/
   vegetation; railway stays gameplay-flat. No flat-green-plane look.
 - Fences varied: sections on/off, broken/tilted posts, overgrowth, signs
-  interleaved. Camp: tents + campfire + log stacks + procedural lamp posts
-  (minor detail exception) + wooden signs.
+  interleaved. Camp: tents + campfire + log stacks (all GLB) + wooden signs;
+  lamps only from a licensed GLB if found, else omitted entirely.
+  Procedural/primitive allowed ONLY for tiny secondary decor, never as a main
+  visible prop. Wooden cabin has no verified GLB: use tent camp instead and
+  record cabin as wanted/missing.
 
 ## 4. Themes (visual only, rotate by distance)
 
@@ -66,8 +69,10 @@ Prior specs: visual-production-design (forest concept), mobile-upgrade-design.
   no lane entry (|x|≥6), never blocks gameplay/coins.
 - Behaviors: graze/idle between trees, slow walk parallel then despawn.
   Animations idle/walk/run/eat where clips exist, crossfaded; else static.
-- One mixer per species max; LOW quality halves counts + disables distant
-  anim. Load once, cache, pool 2–3 per species, recycle out of range.
+- One AnimationMixer per actively animated animal instance when required;
+  globally cap concurrent animated wildlife instances (LOW stricter); pool
+  and reuse mixers together with their instances. Distant/idle animals may
+  stay static.
 - Scale normalized at load (deer/stag shoulder ~1.2m, fox ~0.4m, wolf ~0.8m).
 
 ## 6. Perf + readability + done
