@@ -98,6 +98,14 @@ export function initGame() {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
+  // Ẩn tab thì tự pause để không bị xuyên obstacle khi quay lại
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state === 'playing' && !paused) {
+      paused = true;
+      ui.setPaused(true);
+    }
+  });
+
   const clock = new THREE.Clock();
   function loop() {
     requestAnimationFrame(loop);
