@@ -66,22 +66,22 @@ Prior specs: `2026-10-07-subway-surfers-3d-design.md`, `2026-10-07-mobile-upgrad
 - Gate: visual inspect at 390×844; if the character still looks poor, STOP and
   pick another asset before continuing (plan encodes this as a gate).
 
-## 4. Trains, railway, city, vegetation (Stages 3–6)
+## 4. Trains, railway, forest env (Stages 3–6) — CONCEPT: RỪNG NÚI
 
-- Trains (2–3 variants): shaped body + windshield + windows + doors +
-  headlights (emissive) + roof + undercarriage/wheel suggestion; original
-  collision boxes kept; loaded models reused, never one GLB per spawn.
-- Railway: steel rails (metalness), sleepers, ballast, signals, cabinets,
-  signs, fences, equipment — InstancedMesh; strong horizon perspective.
-- City: reusable chunks (CityBlockA/B/C, IndustrialBlockA, StationBlockA,
-  GreenBlockA), each with near/mid/background layers; buildings get windows,
-  doors, roofs, ledges, signs, awnings, rooftop details — never plain boxes
-  as final look. 4 themes (Downtown/Industrial/Station/Green) change ONLY
-  palette + chunk composition by distance, never gameplay.
-- Vegetation: ~3 trees + 2 bushes + 2 grass + 2 rocks (Kenney natureKit),
-  InstancedMesh, never occluding lanes/coins/power-ups.
-- 6 depth layers: gameplay → rails/equipment → near props → midground →
-  skyline → fog/sky. Detail outside lanes; gameplay area stays clean.
+- Trains = LOGGING TRAINS (toa gỗ chở gỗ, cabin, đèn headlight emissive, gầm
+  + bánh xe): vẫn là tàu dài đúng gameplay, hợp bối cảnh rừng. 2–3 biến thể
+  màu gỗ. Collision boxes giữ nguyên; model tái dùng, không load GLB mỗi tàu.
+- Barriers reskin rừng (giữ nguyên hitbox): rào thấp = tảng đá/tảng gỗ nằm
+  (nhảy), rào cao = thân cây đổ trên cao (trượt).
+- Railway: steel rails, sleepers, ballast, biển đường mòn, tủ điện trại gỗ,
+  hàng rào gỗ, thiết bị — InstancedMesh; phối cảnh mạnh về chân trời.
+- Forest chunks tái dùng (thay city chunks): ForestDenseA/B (thông dày),
+  LoggingCampA (sàn gỗ, cabin, đèn, biển, hàng rào), CliffPassA (vách đá 2
+  bên, thông thưa), MeadowOutskirtsA (bụi, cỏ, hàng rào, treeline xa).
+  4 theme chỉ đổi palette/composition chunk theo quãng đường, không gameplay.
+- Vegetation: cây/đá/bụi/cỏ Kenney natureKit (GLB thật, ~9 mẫu), InstancedMesh
+  nếu cần, không che làn chơi.
+- 6 depth layers giữ nguyên; chi tiết dồn ngoài làn gameplay.
 
 ## 5. Lighting, camera, materials, textures (Stage 7)
 

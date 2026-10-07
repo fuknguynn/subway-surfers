@@ -87,19 +87,19 @@
 
 ---
 
-### Task 3: Trains upgrade (procedural, adapter-ready)
+### Task 3: Logging trains (procedural, adapter-ready)
 
 **Files:**
-- Modify: `src/world.js` (train maker only), `src/assets.js` (train materials if needed)
+- Modify: `src/world.js` (train maker only), `src/assets.js` (wood/log materials if needed)
 
 **Interfaces:**
 - Consumes: existing `makers.train` slot + pool (`obtain`/`release`), `userData.half` contract.
-- Produces: same `userData.half`/`kind` values (2.4 height, lengths 8–14); 2–3 color variants chosen by pooled-mesh-agnostic variant flag (variant stored per mesh, NOT per spawn — document the freeze, consistent with prior ruling).
+- Produces: same `userData.half`/`kind` values (2.4 height, lengths 8–14); 2–3 wood-tone variants.
 
-- [ ] **Step 1: Failing check** — node asserts train visual child count ≥4 (body+cabin+lights+undercarriage). Expected: FAIL (current has body+cabin+2 lights, no undercarriage/wheels/doors/windows).
-- [ ] **Step 2: Implement** — detailed body: windshield, window band, doors, headlight emissive pair, roof unit, undercarriage + wheel suggestions; 2–3 liveries; keep `half`/`elevated` EXACT.
+- [ ] **Step 1: Failing check** — node asserts train visual includes log load + undercarriage/wheels (child kinds). Expected: FAIL.
+- [ ] **Step 2: Implement** — wooden logging car: log load (cylinders), cabin, headlight emissive pair, undercarriage + wheel suggestions; 2–3 wood liveries; keep `half`/`elevated` EXACT.
 - [ ] **Step 3: Verify** — hitbox semantics JSON identical (train [2.4,0]); pool warm-up stable; fairness DP walk still passes (reuse scripts/check-mobile.mjs cases); build PASS.
-- [ ] **Step 4: Commit** — `git commit -m "feat: detailed train variants, hitbox unchanged"`
+- [ ] **Step 4: Commit** — `git commit -m "feat: logging train variants, hitbox unchanged"`
 
 ---
 
@@ -116,22 +116,23 @@
 
 ---
 
-### Task 5: City chunks + themes + vegetation
+### Task 5: Forest chunks + themes + vegetation
 
 **Files:**
-- Create: `src/city.js` (chunk builders + theme composer)
-- Modify: `src/world.js` (consume chunks instead of houseMeshes), `src/assets.js` (wall/roof/window mats)
+- Create: `src/forest.js` (chunk builders + theme composer)
+- Modify: `src/world.js` (consume chunks instead of houseMeshes), `src/assets.js` (wood/rock/leaf mats)
 - Download (this task): Kenney natureKit subset (3 trees, 2 bushes, 2 grass, 2 rocks GLBs) → `public/assets/vegetation/` + THIRD_PARTY_ASSETS entry
 
 **Interfaces:**
 - Consumes: world scroll (`dz`), distance, quality profile.
-- Produces: `createCity(scene) -> { update(dz, distanceM, density), setTheme(name) }`; chunks CityBlockA/B/C, IndustrialBlockA, StationBlockA, GreenBlockA; themes Downtown/Industrial/Station/Green switch by distance band; vegetation counts scale by profile (LOW fewer); nothing occludes lanes (max height near lanes <1.2m except at |x|>4).
+- Produces: `createForest(scene) -> { update(dz, distanceM, density), setTheme(name) }`; chunks ForestDenseA/B, LoggingCampA, CliffPassA, MeadowOutskirtsA; themes Downtown/Industrial/Station/Green switch by distance band (visual only); forest themes instead; vegetation counts scale by profile (LOW fewer); nothing occludes lanes (max height near lanes <1.2m except at |x|>4).
 
-- [ ] **Step 1: Failing check** — node imports `src/city.js`. Expected: FAIL.
+- [ ] **Step 1: Failing check** — node imports `src/forest.js`. Expected: FAIL.
 - [ ] **Step 2: Download + record** — sparse checkout ONLY the 9 named natureKit GLBs; sizes recorded; any file >500KB → webp/compress or reject.
-- [ ] **Step 3: Implement chunks + themes** — buildings with windows/doors/roofs/ledges/signs/awnings from shared parts; instanced repetition; theme composer picks chunk mix per distance band (visual only).
+- [ ] **Step 3: Implement chunks + themes** — forest chunks from shared parts + natureKit GLBs; instanced repetition; theme composer picks chunk mix per distance band (visual only).
 - [ ] **Step 4: Verify** — occlusion rule test (near-lane props height check); build PASS; manual screenshot gate at 390×844: 6 depth layers visible, gameplay readable (Review Focus item 4 pinned here as manual PASS/FAIL in commit message).
-- [ ] **Step 5: Commit** — `git commit -m "feat: city chunks themes vegetation"`
+- [ ] **Step 5: Commit** — `git commit -m "feat: forest chunks themes vegetation"`
+- Barriers reskin: low = boulder/log (jump), high = fallen trunk overhead (slide); hitbox EXACT (implemented in Task 5 Step 3).
 
 ---
 
