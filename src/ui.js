@@ -4,12 +4,19 @@ export function createUI(handlers = {}) {
   root.style.pointerEvents = 'none';
 
   root.innerHTML = `
+    <div id="ui-loading" class="ui-overlay">
+      <h1>🚇 Subway Mini 3D</h1>
+      <p>Loading...</p>
+      <div id="ui-loadbar"><div id="ui-loadfill"></div></div>
+    </div>
     <div id="ui-score" class="ui-hidden">0m</div>
     <div id="ui-coins" class="ui-hidden">🪙 0</div>
+    <div id="ui-timers" class="ui-hidden"></div>
+    <button id="ui-mute" class="ui-hidden">🔊</button>
     <div id="ui-paused" class="ui-hidden">Tạm dừng — bấm P để tiếp tục</div>
     <div id="ui-rotate" class="ui-hidden">📱 Xoay dọc điện thoại để chơi thoải mái hơn</div>
     <div id="ui-flash" class="ui-hidden"></div>
-    <div id="ui-menu" class="ui-overlay">
+    <div id="ui-menu" class="ui-overlay ui-hidden">
       <h1>🚇 Subway Mini 3D</h1>
       <p>← → đổi làn &nbsp;•&nbsp; ↑ nhảy &nbsp;•&nbsp; ↓ trượt<br/>Vuốt trên mobile • P tạm dừng</p>
       <p id="ui-menu-best"></p>
@@ -19,7 +26,10 @@ export function createUI(handlers = {}) {
       <h1>💥 Game Over</h1>
       <p id="ui-final"></p>
       <p id="ui-best"></p>
-      <button id="ui-retry">↻ Chơi lại</button>
+      <div class="ui-row">
+        <button id="ui-retry">↻ Chơi lại</button>
+        <button id="ui-home">🏠 Home</button>
+      </div>
     </div>`;
 
   const scoreEl = root.querySelector('#ui-score');
@@ -27,6 +37,10 @@ export function createUI(handlers = {}) {
   const pausedEl = root.querySelector('#ui-paused');
   const rotateEl = root.querySelector('#ui-rotate');
   const flashEl = root.querySelector('#ui-flash');
+  const loadingEl = root.querySelector('#ui-loading');
+  const loadFill = root.querySelector('#ui-loadfill');
+  const muteBtn = root.querySelector('#ui-mute');
+  const timersEl = root.querySelector('#ui-timers');
   const menuEl = root.querySelector('#ui-menu');
   const overEl = root.querySelector('#ui-over');
 
@@ -37,6 +51,16 @@ export function createUI(handlers = {}) {
     root.querySelector('#ui-start').addEventListener('click', handlers.onStart);
     root.querySelector('#ui-retry').addEventListener('click', handlers.onStart);
   }
+  if (handlers.onHome) {
+    root.querySelector('#ui-home').addEventListener('click', handlers.onHome);
+  }
+  if (handlers.onMute) {
+    muteBtn.addEventListener('click', () => {
+      const muted = handlers.onMute();
+      muteBtn.textContent = muted ? '🔇' : '🔊';
+    });
+  }
+  if (handlers.muted) muteBtn.textContent = handlers.muted() ? '🔇' : '🔊';
 
   return {
     setScore(m, coins) {
@@ -63,6 +87,8 @@ export function createUI(handlers = {}) {
       hide(overEl);
       hide(scoreEl);
       hide(coinsEl);
+      hide(timersEl);
+      hide(muteBtn);
       show(menuEl);
       root.querySelector('#ui-menu-best').textContent =
         best > 0 ? `Kỷ lục: ${Math.floor(best)}m` : '';
@@ -72,15 +98,39 @@ export function createUI(handlers = {}) {
       hide(overEl);
       show(scoreEl);
       show(coinsEl);
+      show(timersEl);
+      show(muteBtn);
     },
-    showGameOver(score, best, isNewBest) {
+    showGameOver(stats) {
+      const { score, best, distance, coins, isNewBest } = stats;
       hide(menuEl);
       show(overEl);
       root.querySelector('#ui-final').textContent =
-        `Bạn chạy được ${Math.floor(score)}m`;
-      root.querySelector('#ui-best').textContent = isNewBest
-        ? '🎉 Kỷ lục mới!'
-        : `Kỷ lục: ${Math.floor(best)}m`;
+        `SCORE ${Math.floor(score)} • BEST ${Math.floor(best)}`;
+      root.querySelector('#ui-best').textContent =
+        `🏃 ${Math.floor(distance)}m • 🪙 ${coins}` +
+        (isNewBest ? ' • 🎉 Kỷ lục mới!' : '');
+    },
+    showLoading(pct) {
+      show(loadingEl);
+      loadFill.style.width = `${Math.floor(pct * 100)}%`;
+    },
+    hideLoading() {
+      hide(loadingEl);
+    },
+    setPowerup(name, secondsLeft) {
+      let el = timersEl.querySelector(`[data-pu="${name}"]`);
+      if (secondsLeft == null) {
+        if (el) el.remove();
+        return;
+      }
+      if (!el) {
+        el = document.createElement('div');
+        el.dataset.pu = name;
+        timersEl.appendChild(el);
+      }
+      const icons = { magnet: '🧲', shield: '🛡️', multi: '✌️' };
+      el.textContent = `${icons[name] || name} ${Math.ceil(secondsLeft)}s`;
     },
   };
 }

@@ -5,6 +5,8 @@ import { bindInput } from './input.js';
 import { createUI } from './ui.js';
 import { createQuality } from './quality.js';
 import { createCamera } from './camera.js';
+import { createParticles } from './particles.js';
+import { createAudio } from './audio.js';
 
 export const SUBSTEP_MAX = 1 / 60;
 export const BASE_SPEED = 12;
@@ -59,17 +61,37 @@ export function createGame(container) {
   const quality = createQuality(renderer);
   const camRig = createCamera(camera);
   camRig.reframe(window.innerWidth / window.innerHeight);
+  const particles = createParticles(scene, quality.profile === 'HIGH' ? 120 : 80);
+  const audio = createAudio();
   let hitFlag = false;
 
-  let state = 'menu'; // menu | playing | paused(hidden) — paused tách riêng
+  let state = 'menu'; // menu | playing | gameover (paused tách riêng)
   let paused = false;
   let speed = BASE_SPEED;
   let elapsed = 0;
+  let distance = 0;
   let score = 0;
   let coins = 0;
   let best = loadBest();
+  let wasGrounded = true;
+  let wasSliding = false;
 
-  const ui = createUI({ onStart: start });
+  const ui = createUI({
+    onStart: () => {
+      audio.unlock();
+      audio.click();
+      start();
+    },
+    onHome: () => {
+      audio.click();
+      state = 'menu';
+      paused = false;
+      ui.setPaused(false);
+      ui.showMenu(best);
+    },
+    onMute: () => audio.toggleMute(),
+    muted: () => audio.isMuted(),
+  });
   ui.showMenu(best);
 
   function start() {
@@ -77,8 +99,11 @@ export function createGame(container) {
     world.reset();
     speed = BASE_SPEED;
     elapsed = 0;
+    distance = 0;
     score = 0;
     coins = 0;
+    wasGrounded = true;
+    wasSliding = false;
     paused = false;
     ui.setPaused(false);
     ui.showHUD();
@@ -90,12 +115,14 @@ export function createGame(container) {
     state = 'gameover';
     hitFlag = true;
     ui.flashHit();
+    audio.hit();
+    particles.burst('hit', player.mesh.position.x, 1.2, 0);
     const isNewBest = score > best;
     if (isNewBest) {
       best = score;
       saveBest(best);
     }
-    ui.showGameOver(score, best, isNewBest);
+    ui.showGameOver({ score, best, distance, coins, isNewBest });
   }
 
   function collide() {
@@ -118,6 +145,8 @@ export function createGame(container) {
         coins += 1;
         score += COIN_SCORE;
         ui.pulseCoins();
+        audio.coin();
+        particles.burst('coin', c.position.x, c.position.y, c.position.z);
       }
     }
     ui.setScore(score, coins);
@@ -129,7 +158,16 @@ export function createGame(container) {
       elapsed += h;
       speed = Math.min(BASE_SPEED + elapsed * SPEED_RAMP, MAX_SPEED);
       score += speed * h;
+      distance += speed * h;
       player.update(h);
+      if (wasGrounded && !player.grounded) audio.jump();
+      const sliding = player.slideTimer > 0;
+      if (!wasSliding && sliding) audio.slide();
+      wasGrounded = player.grounded;
+      wasSliding = sliding;
+      if (player.justLanded) {
+        particles.burst('land', player.mesh.position.x, 0.1, 0);
+      }
       world.update(h, speed);
       collide();
     }
@@ -162,9 +200,14 @@ export function createGame(container) {
 
   // Ẩn tab thì tự pause để không bị xuyên obstacle khi quay lại
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && state === 'playing' && !paused) {
-      paused = true;
-      ui.setPaused(true);
+    if (document.hidden) {
+      audio.suspend();
+      if (state === 'playing' && !paused) {
+        paused = true;
+        ui.setPaused(true);
+      }
+    } else {
+      audio.resume();
     }
   });
 
@@ -174,6 +217,7 @@ export function createGame(container) {
     const dt = Math.min(clock.getDelta(), 0.05);
     quality.noteFrame(dt * 1000);
     if (state === 'playing' && !paused) simulate(dt);
+    particles.update(dt);
     camRig.update(dt, {
       speed,
       laneX: player.mesh.position.x,

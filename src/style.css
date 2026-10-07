@@ -73,6 +73,53 @@ body {
   display: inline-block;
 }
 
+#ui-timers {
+  position: absolute;
+  top: 52px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+#ui-mute {
+  position: absolute;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#ui-loadbar {
+  width: 220px;
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+#ui-loadfill {
+  height: 100%;
+  width: 0%;
+  background: #ffaa00;
+  border-radius: 6px;
+}
+
+.ui-row {
+  display: flex;
+  gap: 12px;
+}
+
 .ui-overlay {
   position: absolute;
   inset: 0;
