@@ -61,11 +61,10 @@ export const MAT = {
   coin: new THREE.MeshStandardMaterial({
     color: PALETTE.glow, metalness: 0.6, roughness: 0.3,
   }),
-  barrierLow: std(PALETTE.barrierLow),
   barrierHigh: std(PALETTE.barrierHigh),
-  ground: std(PALETTE.ground),
+  ground: std(PALETTE.ground, { roughness: 1.0 }),
   railSteel: std(PALETTE.steel, { roughness: 0.35, metalness: 0.65 }),
-  ballast: std(PALETTE.ballast),
+  ballast: std(PALETTE.ballast, { roughness: 1.0 }),
   sleeper: std(PALETTE.sleeper),
   houseA: null, // alias -> pants (cùng hex)
   houseB: std(PALETTE.houseB),
