@@ -8,6 +8,8 @@ import { createCamera } from './camera.js';
 import { createParticles } from './particles.js';
 import { createAudio } from './audio.js';
 import { createPowerups, MAGNET_RADIUS } from './powerups.js';
+import { createAssetManager } from './assetManager.js';
+import { LANES } from './player.js';
 
 export const SUBSTEP_MAX = 1 / 60;
 export const BASE_SPEED = 12;
@@ -65,6 +67,7 @@ export function createGame(container) {
   const particles = createParticles(scene, quality.profile === 'HIGH' ? 120 : 80);
   const audio = createAudio();
   const powerups = createPowerups(scene);
+  const assets = createAssetManager();
   let hitFlag = false;
 
   let state = 'menu'; // menu | playing | gameover (paused tách riêng)
@@ -97,6 +100,17 @@ export function createGame(container) {
   });
   ui.showMenu(best);
   ui.hideLoading(); // core đã sẵn sàng: gỡ overlay loading, nếu không nó che HUD + chặn touch
+
+  // GLB character tải nền: xong thì thay procedural, lỗi thì giữ fallback.
+  // Gameplay không chờ asset (menu/PLAY sẵn sàng ngay).
+  assets.onProgress((id, loaded, total) => {
+    if (total > 0) ui.showLoading(loaded / total);
+  });
+  assets.loadModel('runner', `${import.meta.env.BASE_URL}assets/character/human_male.glb`)
+    .then(() => {
+      player.setGLBModel(assets.cloneModel('runner'), assets.getClips('runner'));
+    })
+    .catch(() => player.useProcedural());
 
   function start() {
     player.reset();
@@ -230,12 +244,24 @@ export function createGame(container) {
     }
   });
 
+  function visualState() {
+    if (state !== 'playing') return state === 'gameover' ? 'hit' : 'idle';
+    if (!player.grounded) return 'jump';
+    if (player.slideTimer > 0) return 'slide';
+    return 'run';
+  }
+
   const clock = new THREE.Clock();
   function loop() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), 0.05);
     quality.noteFrame(dt * 1000);
     if (state === 'playing' && !paused) simulate(dt);
+    player.visual.setState(visualState());
+    player.visual.setLean(
+      (LANES[player.laneIndex] - player.mesh.position.x) * 0.1,
+    );
+    player.visual.update(dt);
     // Timer HUD: 1 lần/frame (không gọi trong substep để tránh spam DOM)
     for (const k of powerups.kinds) {
       const left = powerups.timers[k];

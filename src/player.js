@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { MAT, part, blobShadow } from './assets.js';
+import { createPlayerVisual } from './playerVisual.js';
 
 export const LANES = [-2, 0, 2];
 
@@ -16,8 +17,12 @@ const SLIDE_SCALE = 0.42; // 1.7 * 0.42 ≈ 0.71 ≈ bounds trượt 0.7
 
 export function createPlayer(scene) {
   const group = new THREE.Group();
-  const rig = new THREE.Group(); // toàn thân (scale khi slide)
-  group.add(rig);
+  const body = new THREE.Group(); // scale khi slide (áp cho procedural lẫn GLB)
+  group.add(body);
+  const rig = new THREE.Group(); // toàn thân procedural
+  body.add(rig);
+  const visual = createPlayerVisual();
+  body.add(visual.holder);
 
   // --- Chân jogger tách 2 ống + sneaker chunky ---
   function makeLeg(x) {
@@ -113,7 +118,8 @@ export function createPlayer(scene) {
       this.landTimer = 0;
       group.position.set(0, 0, 0);
       group.rotation.set(0, 0, 0);
-      rig.scale.set(1, 1, 1);
+      body.scale.set(1, 1, 1);
+      visual.setState('idle', true);
     },
 
     update(dt) {
@@ -160,16 +166,27 @@ export function createPlayer(scene) {
       }
       pack.position.y = 0.95 + Math.abs(Math.sin(this.phase)) * 0.03;
 
-      // Trượt: scale cả rig (đỉnh visual ≈ bounds trượt)
+      // Trượt: scale cả body (đỉnh visual ≈ bounds trượt)
       // Squash tiếp đất nhân thêm 0.9 — visual only, bounds giữ nguyên.
       if (this.landTimer > 0) this.landTimer -= dt;
       const squash = this.landTimer > 0 ? 0.9 : 1;
       if (this.slideTimer > 0) {
         this.slideTimer -= dt;
-        rig.scale.set(1, SLIDE_SCALE * squash, 1);
+        body.scale.set(1, SLIDE_SCALE * squash, 1);
       } else {
-        rig.scale.set(1, squash, 1);
+        body.scale.set(1, squash, 1);
       }
+    },
+
+    // GLB visual: con của body nên ăn mọi transform gameplay (lane/jump/slide)
+    visual,
+    setGLBModel(root, clips) {
+      rig.visible = false;
+      visual.setModel(root, clips);
+    },
+    useProcedural() {
+      visual.useFallback();
+      rig.visible = true;
     },
 
     getBounds() {

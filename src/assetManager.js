@@ -25,7 +25,7 @@ export function createAssetManager(opts = {}) {
         if (existing.status === 'ready') return Promise.resolve(existing.scene);
         return existing.promise;
       }
-      const entry = { status: 'loading', promise: null, scene: null, error: null };
+      const entry = { status: 'loading', promise: null, scene: null, gltf: null, error: null };
       entry.promise = new Promise((resolve, reject) => {
         let done = false;
         const timer = setTimeout(() => {
@@ -42,6 +42,7 @@ export function createAssetManager(opts = {}) {
           clearTimeout(timer);
           entry.status = 'ready';
           entry.scene = gltf.scene;
+          entry.gltf = gltf;
           emit(id, 1, 1);
           resolve(gltf.scene);
         };
@@ -69,6 +70,11 @@ export function createAssetManager(opts = {}) {
     getModel(id) {
       const e = registry.get(id);
       return e && e.status === 'ready' ? e.scene : null;
+    },
+
+    getClips(id) {
+      const e = registry.get(id);
+      return e && e.status === 'ready' && e.gltf ? e.gltf.animations || [] : [];
     },
 
     cloneModel(id) {
