@@ -120,5 +120,40 @@ const assets = await import('../src/assets.js');
   check('bounds stand 1.9 / slide 0.7', b0.maxY === 1.9 && pl.getBounds().maxY === 0.7);
 }
 
+// 8. Payload audit: production assets trong budget
+{
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const walk = (dir) => {
+    let total = 0;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) total += walk(p);
+      else total += fs.statSync(p).size;
+    }
+    return total;
+  };
+  const assetsBytes = walk('public/assets');
+  const charBytes = fs.statSync('public/assets/character/human_male.glb').size;
+  console.log('payload assets:', (assetsBytes / 1048576).toFixed(2) + 'MB');
+  check('payload <15MB', assetsBytes < 15 * 1024 * 1024);
+  check('character glb <8MB', charBytes < 8 * 1024 * 1024);
+}
+
+// 9. Heap phẳng qua reset cycles
+{
+  const world = worldM.createWorld({ add() {}, fog: null });
+  const pl = playerM.createPlayer({ add() {} });
+  const sizes = [];
+  for (let c = 0; c < 3; c++) {
+    for (let i = 0; i < 2000; i++) { world.update(0.016, 20); pl.update(0.016); }
+    world.reset(); pl.reset();
+    if (global.gc) global.gc();
+    sizes.push(process.memoryUsage().heapUsed);
+  }
+  const growth = (sizes[2] - sizes[0]) / sizes[0];
+  check('heap flat over cycles', growth < 0.15);
+}
+
 console.log(failures === 0 ? '\nALL CHECKS PASS' : `\n${failures} CHECKS FAILED`);
 process.exit(failures === 0 ? 0 : 1);

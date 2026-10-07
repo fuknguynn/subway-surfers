@@ -59,11 +59,12 @@ npx vite preview  # kiểm tra bản build trước khi deploy
 
 ## Perf (đo headless + build)
 
-- `dist/` ~490KB (~127KB gzip) — dưới xa budget 5–8MB.
-- Draw calls ~115 (shader đơn giản), triangles ~3k — nhẹ.
-- Heap phẳng qua 5 chu kỳ play→die→retry (+2.2%, nhiễu).
-- Spawn fairness: 2100 proof-case + DP walk qua stream — 0 vi phạm.
-- `npm run build` PASS, `vite preview` HTTP 200, console sạch ở mức build.
+- `dist/` JS ~600KB (~160KB gzip) + `public/assets/` 3.16MB (character 3.2MB
+  → tổng payload <5MB, dưới xa budget 10–15MB).
+- Draw calls ~140 headless (shader đơn giản, tris ~6k); vegetation GLB render
+  bằng InstancedMesh (~16 draws cho toàn bộ cây/cỏ/đá).
+- Heap phẳng qua reset cycles; spawn fairness 2100 proof-case + DP walk — 0 vi phạm.
+- `npm run build` PASS, `vite preview` HTTP 200, `npm run check:mobile` ALL PASS.
 
 ## Test matrix
 
