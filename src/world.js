@@ -87,7 +87,13 @@ export function createWorld(scene) {
   const fenceZ = [];
   for (let i = 0; i < FENCE_N; i++) fenceZ.push(10 - i * 4);
 
-  // Biển đường mòn: 2 cái tái chế (cột + bảng + dạ quang)
+  // Mảng sỏi/đất xen kẽ 2 bên ray (visual transition, tái chế)
+  const PATCH_N = 16;
+  const patchMesh = new THREE.InstancedMesh(boxGeo(2.2, 0.03, 3), MAT.ballast, PATCH_N);
+  patchMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  scene.add(patchMesh);
+  const patchZ = [];
+  for (let i = 0; i < PATCH_N; i++) patchZ.push(10 - i * 7.5);
   const signs = [];
   for (let i = 0; i < 2; i++) {
     const g = new THREE.Group();
@@ -296,6 +302,18 @@ export function createWorld(scene) {
           g.position.x = -g.position.x; // đổi bên cho đỡ đơn điệu
         }
       }
+
+      for (let i = 0; i < PATCH_N; i++) {
+        let z = patchZ[i] + dz;
+        if (z > DESPAWN_Z) z -= 120;
+        patchZ[i] = z;
+        dummy.position.set(i % 2 === 0 ? -3.4 : 3.4, 0.015, z);
+        dummy.scale.set(1, 1, 1);
+        dummy.rotation.set(0, 0, 0);
+        dummy.updateMatrix();
+        patchMesh.setMatrixAt(i, dummy.matrix);
+      }
+      patchMesh.instanceMatrix.needsUpdate = true;
 
       if (distance - lastRowAt >= ROW_GAP) {
         lastRowAt = distance;

@@ -5,18 +5,26 @@ import { normalizeToHeight } from './scaleTable.js';
 // Rừng núi: chunk tái dùng + theme theo quãng đường (visual only).
 // Vegetation GLB render bằng InstancedMesh (mỗi model 1-2 draws cho mọi slot).
 // Quy tắc occlusion: |x| < 4.5 thì cao < 1.2m.
-export const THEMES = ['deep', 'camp', 'cliff', 'meadow'];
+export const THEMES = ['dense', 'rocky', 'mountain', 'cabin', 'river', 'misty'];
 const DENSITY = {
-  deep: { tree: 1.0, bush: 0.8, grass: 0.6, rock: 0.5, cliff: 0 },
-  camp: { tree: 0.5, bush: 0.6, grass: 0.6, rock: 0.4, cliff: 0 },
-  cliff: { tree: 0.35, bush: 0.3, grass: 0.3, rock: 0.8, cliff: 1 },
-  meadow: { tree: 0.4, bush: 1.0, grass: 1.0, rock: 0.3, cliff: 0 },
+  dense: { tree: 1.0, bush: 0.9, grass: 0.7, rock: 0.4, cliff: 0 },
+  rocky: { tree: 0.4, bush: 0.4, grass: 0.4, rock: 1.0, cliff: 0.8 },
+  mountain: { tree: 0.7, bush: 0.4, grass: 0.4, rock: 0.6, cliff: 0.6 },
+  cabin: { tree: 0.5, bush: 0.6, grass: 0.7, rock: 0.4, cliff: 0 },
+  river: { tree: 0.7, bush: 0.8, grass: 0.9, rock: 0.6, cliff: 0 },
+  misty: { tree: 0.9, bush: 0.7, grass: 0.6, rock: 0.4, cliff: 0.3 },
 };
 const FOG_TINT = {
-  deep: 0x9fd4c0,
-  camp: 0xd8c49a,
-  cliff: 0x9db8cc,
-  meadow: 0xcfeef7,
+  dense: 0x9fd4c0,
+  rocky: 0xb8c4c4,
+  mountain: 0xa8c8e0,
+  cabin: 0xd8c49a,
+  river: 0xaed8e0,
+  misty: 0xc8d8dc,
+};
+const FOG_RANGE = {
+  dense: [30, 95], rocky: [30, 100], mountain: [40, 160],
+  cabin: [30, 95], river: [30, 110], misty: [12, 60],
 };
 const WRAP = 200;
 const DESPAWN_Z = 14;
@@ -47,7 +55,7 @@ export function checkOcclusion(plan = SLOT_PLAN) {
 }
 
 export function themeAt(distanceM) {
-  return THEMES[Math.floor(distanceM / 300) % THEMES.length];
+  return THEMES[Math.floor(distanceM / 250) % THEMES.length];
 }
 
 const dummy = new THREE.Object3D();
@@ -60,6 +68,9 @@ export function createForest(scene, assets, opts = {}) {
 
   const batches = []; // {imesh, slots: [{z, x, kind, y, s, rot}]}
   const backdrop = []; // {obj, z, span} — núi xa, parallax 0.05
+  const BRIDGE_N = 3;
+  let bridgeMeshes = [];
+  const bridgeZ = [];
   const fogTarget = new THREE.Color(
     scene.fog ? scene.fog.color.getHex() : FOG_TINT.deep,
   );
@@ -111,6 +122,30 @@ export function createForest(scene, assets, opts = {}) {
     for (const e of SLOT_PLAN) await loadBatch(e, 'vegetation');
     for (const e of CAMP_PLAN) await loadBatch(e, 'props');
 
+    // Sông visual 1 bên (ngoài cây), cầu gỗ ngang qua định kỳ
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(6, 240), MAT.train);
+    water.rotation.x = -Math.PI / 2;
+    water.position.set(20, 0.03, -90);
+    scene.add(water);
+    try {
+      const base = (import.meta.env && import.meta.env.BASE_URL) || './';
+      const bg = await assets.loadModel('prop-bridge', `${base}assets/props/bridge_wood.glb`);
+      const prims = [];
+      bg.traverse((o) => { if (o.isMesh) prims.push({ geo: o.geometry, mat: o.material }); });
+      if (prims.length) {
+        bridgeMeshes = prims.map((p) => {
+          const im = new THREE.InstancedMesh(p.geo, p.mat, BRIDGE_N);
+          im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+          im.frustumCulled = false;
+          group.add(im);
+          return im;
+        });
+        for (let i = 0; i < BRIDGE_N; i++) bridgeZ.push(-30 - i * 80);
+      }
+    } catch {
+      // Không cầu: sông + đá vẫn ổn
+    }
+
     // Background: núi + đồi xa (vượt tầm fog scene -> fog:false + haze tay, parallax 0.05)
     try {
       const base = (import.meta.env && import.meta.env.BASE_URL) || './';
@@ -146,14 +181,21 @@ export function createForest(scene, assets, opts = {}) {
     if (scene.fog) fogTarget.set(FOG_TINT[name]);
   }
 
-  // Lerp fog mượt (tránh cắt cảnh khi đổi theme); test được headless.
-  // Trả về delta kênh màu lớn nhất của bước này.
+  // Lerp fog mượt (màu + tầm nhìn, tránh cắt cảnh khi đổi theme); test được.
+  // Trả về delta lớn nhất của bước này.
   function stepFog(dt) {
     if (!scene.fog) return 0;
+    const k = 1 - Math.exp(-2 * dt);
     const c = scene.fog.color;
-    const r0 = c.r, g0 = c.g, b0 = c.b;
-    c.lerp(fogTarget, 1 - Math.exp(-2 * dt));
-    return Math.max(Math.abs(c.r - r0), Math.abs(c.g - g0), Math.abs(c.b - b0));
+    const r0 = c.r, g0 = c.g, b0 = c.b, n0 = scene.fog.near, f0 = scene.fog.far;
+    c.lerp(fogTarget, k);
+    const [tn, tf] = FOG_RANGE[theme] || FOG_RANGE.dense;
+    scene.fog.near += (tn - n0) * k;
+    scene.fog.far += (tf - f0) * k;
+    return Math.max(
+      Math.abs(c.r - r0), Math.abs(c.g - g0), Math.abs(c.b - b0),
+      Math.abs(scene.fog.near - n0) / 100, Math.abs(scene.fog.far - f0) / 100,
+    );
   }
 
   const forest = {
@@ -198,6 +240,19 @@ export function createForest(scene, assets, opts = {}) {
         if (b.z > -50) b.z -= b.span;
         b.obj.position.z = b.z;
       }
+      for (let i = 0; i < BRIDGE_N && bridgeMeshes.length; i++) {
+        let z = bridgeZ[i] + dz;
+        if (z > DESPAWN_Z) z -= 240;
+        bridgeZ[i] = z;
+        dummy.position.set(20, 0.4, z);
+        dummy.rotation.set(0, Math.PI / 2, 0);
+        dummy.scale.setScalar(1.5);
+        dummy.updateMatrix();
+        for (const im of bridgeMeshes) im.setMatrixAt(i, dummy.matrix);
+      }
+      if (bridgeMeshes.length) for (const im of bridgeMeshes) im.instanceMatrix.needsUpdate = true;
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
     },
   };
 
