@@ -16,6 +16,8 @@ export const PALETTE = {
   ground: 0x3a7d44,
   road: 0x555555,
   sleeper: 0x777777,
+  steel: 0xb8c0c8, // ray thép sáng
+  ballast: 0x4a4543, // đá dăm track bed
   houseB: 0x8a6f55,
 };
 
@@ -62,7 +64,8 @@ export const MAT = {
   barrierLow: std(PALETTE.barrierLow),
   barrierHigh: std(PALETTE.barrierHigh),
   ground: std(PALETTE.ground),
-  road: std(PALETTE.road),
+  railSteel: std(PALETTE.steel, { roughness: 0.35, metalness: 0.65 }),
+  ballast: std(PALETTE.ballast),
   sleeper: std(PALETTE.sleeper),
   houseA: null, // alias -> pants (cùng hex)
   houseB: std(PALETTE.houseB),

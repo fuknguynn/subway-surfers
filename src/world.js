@@ -40,11 +40,18 @@ export function createWorld(scene) {
   ground.position.z = -80;
   scene.add(ground);
 
+  // Ballast + ray thép TĨNH (đường ray liên tục, không cần trôi; tà vẹt trôi tạo cảm giác tốc độ)
+  const ballast = new THREE.Mesh(new THREE.PlaneGeometry(8.6, 220), MAT.ballast);
+  ballast.rotation.x = -Math.PI / 2;
+  ballast.position.set(0, 0.005, -80);
+  scene.add(ballast);
+
   for (const x of LANES) {
-    const rail = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 220), MAT.road);
-    rail.rotation.x = -Math.PI / 2;
-    rail.position.set(x, 0.01, -80);
-    scene.add(rail);
+    for (const off of [-0.55, 0.55]) {
+      const rail = new THREE.Mesh(boxGeo(0.12, 0.08, 220), MAT.railSteel);
+      rail.position.set(x + off, 0.06, -80);
+      scene.add(rail);
+    }
   }
 
   // Tà vẹt: 1 InstancedMesh duy nhất
@@ -72,6 +79,30 @@ export function createWorld(scene) {
   for (const hm of houseMeshes) {
     hm.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(hm);
+  }
+
+  // Hàng rào gỗ 2 bên: cọc + thanh ngang, InstancedMesh, trôi cùng world
+  const FENCE_X = 5.2;
+  const FENCE_N = 30;
+  const postMesh = new THREE.InstancedMesh(boxGeo(0.18, 1.1, 0.18), MAT.houseB, FENCE_N * 2);
+  postMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  scene.add(postMesh);
+  const railMesh = new THREE.InstancedMesh(boxGeo(0.1, 0.12, 4.2), MAT.houseB, FENCE_N * 2 * 2);
+  railMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  scene.add(railMesh);
+  const fenceZ = [];
+  for (let i = 0; i < FENCE_N; i++) fenceZ.push(10 - i * 4);
+
+  // Biển đường mòn: 2 cái tái chế (cột + bảng + dạ quang)
+  const signs = [];
+  for (let i = 0; i < 2; i++) {
+    const g = new THREE.Group();
+    g.add(part(0.15, 1.6, 0.15, MAT.pants, 0, 0.8, 0));
+    g.add(part(1.0, 0.5, 0.08, MAT.houseB, 0, 1.6, 0));
+    g.add(part(0.7, 0.12, 0.1, MAT.glow, 0, 1.6, 0));
+    g.position.set(i === 0 ? -4.2 : 4.2, 0, -20 - i * 55);
+    scene.add(g);
+    signs.push(g);
   }
 
   // Pool obstacle/coin theo loại
@@ -230,6 +261,34 @@ export function createWorld(scene) {
       dummy.scale.set(1, 1, 1);
       houseMeshes[0].instanceMatrix.needsUpdate = true;
       houseMeshes[1].instanceMatrix.needsUpdate = true;
+
+      for (let i = 0; i < FENCE_N; i++) {
+        let z = fenceZ[i] + dz;
+        if (z > DESPAWN_Z) z -= 120;
+        fenceZ[i] = z;
+        for (let s = 0; s < 2; s++) {
+          const x = s === 0 ? -FENCE_X : FENCE_X;
+          dummy.position.set(x, 0.55, z);
+          dummy.scale.set(1, 1, 1);
+          dummy.updateMatrix();
+          postMesh.setMatrixAt(i * 2 + s, dummy.matrix);
+          for (let r = 0; r < 2; r++) {
+            dummy.position.set(x, 0.45 + r * 0.35, z + 2);
+            dummy.updateMatrix();
+            railMesh.setMatrixAt((i * 2 + s) * 2 + r, dummy.matrix);
+          }
+        }
+      }
+      postMesh.instanceMatrix.needsUpdate = true;
+      railMesh.instanceMatrix.needsUpdate = true;
+
+      for (const g of signs) {
+        g.position.z += dz;
+        if (g.position.z > DESPAWN_Z + 6) {
+          g.position.z -= 130;
+          g.position.x = -g.position.x; // đổi bên cho đỡ đơn điệu
+        }
+      }
 
       if (distance - lastRowAt >= ROW_GAP) {
         lastRowAt = distance;
