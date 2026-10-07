@@ -15,25 +15,7 @@ export const PALETTE = {
   barrierHigh: 0xd43a2a,
   ground: 0x3a7d44,
   road: 0x555555,
-  sleeper: 0x6b4a35, // gỗ nâu trầm
-  ballast: 0x4a4543, // đá dăm track bed
-  concrete: 0x9aa0a6, // vỉa hè/sân ga
-  steel: 0xb8c0c8, // ray thép sáng
-  pole: 0x37474f, // cột điện/trụ tín hiệu
-  leaf: 0x43a047, // tán cây
-  leafDark: 0x2e7d32,
-  trunk: 0x6d4c41,
-  roof: 0x8d6e63,
-  wall: 0xcfc3b8, // tường nhà sáng ấm
-  wallDark: 0x8d9aa5, // nhà công nghiệp xám xanh
-  window: 0xfff3c4, // cửa sổ sáng ấm (basic)
-  skyTop: 0x3d8fd1,
-  skyBottom: 0xcfeef7,
-  cloud: 0xffffff,
-  skyline: 0x9db8cc, // silhouette xa, tương phản thấp
-  fence: 0x78909c,
-  signPost: 0x546e7a,
-  signBoard: 0xf5f5f5,
+  sleeper: 0x777777,
   houseB: 0x8a6f55,
 };
 
@@ -71,21 +53,6 @@ export const MAT = {
   ground: std(PALETTE.ground),
   road: std(PALETTE.road),
   sleeper: std(PALETTE.sleeper),
-  ballast: std(PALETTE.ballast),
-  concrete: std(PALETTE.concrete),
-  steel: std(PALETTE.steel, { roughness: 0.4, metalness: 0.6 }),
-  pole: std(PALETTE.pole),
-  leaf: std(PALETTE.leaf),
-  leafDark: std(PALETTE.leafDark),
-  trunk: std(PALETTE.trunk),
-  roof: std(PALETTE.roof),
-  wall: std(PALETTE.wall),
-  wallDark: std(PALETTE.wallDark),
-  window: new THREE.MeshBasicMaterial({ color: PALETTE.window }),
-  cloud: new THREE.MeshBasicMaterial({ color: PALETTE.cloud, transparent: true, opacity: 0.9 }),
-  skyline: new THREE.MeshBasicMaterial({ color: PALETTE.skyline, fog: true }),
-  fence: std(PALETTE.fence),
-  signBoard: std(PALETTE.signBoard),
   houseA: null, // alias -> pants (cùng hex)
   houseB: std(PALETTE.houseB),
 };
@@ -101,48 +68,6 @@ export const GEO = {
 const blobMat = new THREE.MeshBasicMaterial({
   color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false,
 });
-
-const cylCache = new Map();
-export function cylGeo(rt, rb, h, seg = 10) {
-  const key = `${rt}|${rb}|${h}|${seg}`;
-  let g = cylCache.get(key);
-  if (!g) {
-    g = new THREE.CylinderGeometry(rt, rb, h, seg);
-    cylCache.set(key, g);
-  }
-  return g;
-}
-
-// Vòm trời gradient đỉnh-xanh/đáy-sáng, 1 draw call, không texture.
-export function buildSky() {
-  const geo = new THREE.SphereGeometry(300, 16, 10);
-  const top = new THREE.Color(PALETTE.skyTop);
-  const bottom = new THREE.Color(PALETTE.skyBottom);
-  const colors = [];
-  const posA = geo.attributes.position;
-  for (let i = 0; i < posA.count; i++) {
-    const t = THREE.MathUtils.clamp(posA.getY(i) / 300, 0, 1);
-    const c = bottom.clone().lerp(top, Math.pow(t, 0.7));
-    colors.push(c.r, c.g, c.b);
-  }
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  const mat = new THREE.MeshBasicMaterial({
-    vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false,
-  });
-  const sky = new THREE.Mesh(geo, mat);
-  sky.renderOrder = -10;
-  return sky;
-}
-
-// Đám mây từ 3-4 hộp trắng dẹt dùng chung material.
-export function buildCloud(scale = 1) {
-  const g = new THREE.Group();
-  g.add(part(3.2, 0.9, 1.6, MAT.cloud, 0, 0, 0));
-  g.add(part(2.0, 0.7, 1.3, MAT.cloud, 1.4, 0.3, 0.2));
-  g.add(part(1.6, 0.6, 1.2, MAT.cloud, -1.4, 0.25, -0.1));
-  g.scale.setScalar(scale);
-  return g;
-}
 
 // Dựng mesh box nhanh từ geo/material dùng chung.
 export function part(w, h, d, mat, x = 0, y = 0, z = 0) {
