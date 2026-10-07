@@ -61,25 +61,7 @@ export function createWorld(scene) {
   for (let i = 0; i < SLEEPER_COUNT; i++) sleeperZ.push(10 - i * 2);
   scene.add(sleepers);
 
-  // Nhà 2 bên: 2 InstancedMesh (1 draw call mỗi loại thay vì 24 mesh)
-  // Nhà phải TO vượt trội nhân vật (cao 6-14m, chân đế 5x6m) để đúng tỷ lệ
-  const HOUSE_COUNT = 24;
-  const houseGeo = boxGeo(5, 1, 6);
-  const houseMeshes = [MAT.houseA, MAT.houseB].map(
-    (mat) => new THREE.InstancedMesh(houseGeo, mat, HOUSE_COUNT / 2),
-  );
-  const houseH = [];
-  const houseZ = [];
-  const houseX = [];
-  for (let i = 0; i < HOUSE_COUNT; i++) {
-    houseH.push(6 + (i % 5) * 2); // 6..14m
-    houseZ.push(10 - i * 8);
-    houseX.push((i % 2 === 0 ? -1 : 1) * (9 + (i % 3) * 2)); // xa làn chơi
-  }
-  for (const hm of houseMeshes) {
-    hm.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    scene.add(hm);
-  }
+  // Nhà rừng thay bằng forest chunks (Task 5) — xóa InstancedMesh nhà hộp
 
   // Hàng rào gỗ 2 bên: cọc + thanh ngang, InstancedMesh, trôi cùng world
   const FENCE_X = 5.2;
@@ -132,21 +114,29 @@ export function createWorld(scene) {
   }
 
   const makers = {
-    // Rào thấp: nhảy qua (hitbox cao 0.9, visual tương đương)
+    // Đá tảng: nhảy qua (hitbox 1.6 x 0.9 như cũ)
     low: () => {
       const g = new THREE.Group();
-      g.add(part(1.6, 0.9, 0.5, MAT.barrierLow, 0, 0.45, 0));
-      g.add(part(0.25, 0.7, 0.54, MAT.glow, -0.4, 0.45, 0)); // chevron
-      g.add(part(0.25, 0.7, 0.54, MAT.glow, 0.4, 0.45, 0));
+      const rock = part(1.5, 0.75, 0.55, MAT.ballast, 0, 0.375, 0);
+      rock.rotation.y = 0.25;
+      g.add(rock);
+      const top = part(0.8, 0.35, 0.5, MAT.ballast, 0.1, 0.85, 0);
+      top.rotation.y = -0.3;
+      g.add(top);
+      g.add(part(0.3, 0.15, 0.57, MAT.glow, -0.4, 0.82, 0)); // dấu nhảy
+      g.add(part(0.3, 0.15, 0.57, MAT.glow, 0.4, 0.82, 0));
       g.userData.half = { x: 0.8, y: 0.45, z: 0.3 };
       return withBlob(g, 1.6);
     },
-    // Rào cao: trượt qua (hitbox đáy y=1.1, đỉnh 2.1)
+    // Thân cây đổ trên cao: trượt qua (hitbox đáy y=1.1, đỉnh 2.1 như cũ)
     high: () => {
       const g = new THREE.Group();
-      g.add(part(1.6, 1.0, 0.5, MAT.barrierHigh, 0, 0, 0));
-      g.add(part(0.2, 1.0, 0.54, MAT.glow, -0.5, 0, 0));
-      g.add(part(0.2, 1.0, 0.54, MAT.glow, 0.5, 0, 0));
+      const trunk = new THREE.Mesh(cylGeo(0.45, 0.45, 2.2, 10), MAT.houseB);
+      trunk.rotation.z = Math.PI / 2;
+      trunk.position.set(0, 0.5, 0); // tâm hitbox (1.1..2.1)
+      g.add(trunk);
+      g.add(part(0.5, 0.3, 0.3, MAT.ground, -0.7, 0.85, 0)); // tán lá
+      g.add(part(0.5, 0.3, 0.3, MAT.ground, 0.7, 0.2, 0));
       g.userData.half = { x: 0.8, y: 0.5, z: 0.3 };
       g.userData.elevated = 1.1;
       return g;
@@ -247,20 +237,6 @@ export function createWorld(scene) {
         sleepers.setMatrixAt(i, dummy.matrix);
       }
       sleepers.instanceMatrix.needsUpdate = true;
-
-      for (let i = 0; i < HOUSE_COUNT; i++) {
-        let z = houseZ[i] + dz;
-        if (z > DESPAWN_Z + 6) z -= 192;
-        houseZ[i] = z;
-        const h = houseH[i];
-        dummy.position.set(houseX[i], h / 2, z);
-        dummy.scale.set(1, h, 1);
-        dummy.updateMatrix();
-        houseMeshes[i % 2].setMatrixAt(i >> 1, dummy.matrix);
-      }
-      dummy.scale.set(1, 1, 1);
-      houseMeshes[0].instanceMatrix.needsUpdate = true;
-      houseMeshes[1].instanceMatrix.needsUpdate = true;
 
       for (let i = 0; i < FENCE_N; i++) {
         let z = fenceZ[i] + dz;

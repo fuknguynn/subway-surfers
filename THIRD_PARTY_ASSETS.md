@@ -21,3 +21,17 @@ Mọi asset bên thứ ba trong `public/assets/` đều có entry ở đây. Kh�
 - Modifications: xóa 78 animation clips không dùng, dọn ~30k accessor chết
   (prune), nén texture WebP; không sửa geometry/skeleton/clip giữ lại
 - Approx production size: 3.2 MB
+
+## kenney-naturekit (vegetation + cliff + logs)
+
+- Asset: Kenney Nature Kit v2.1 (chọn 11/300+ files: tree_pineTallA,
+  tree_pineTallB, tree_oak, plant_bushLarge, plant_bushSmall, grass_large,
+  grass_leafs, rock_largeA, rock_smallA, cliff_rock, log_stack)
+- Original creator: Kenney (kenney.nl)
+- Original source: https://kenney.nl/assets/nature-kit
+- GitHub source: https://github.com/ETdoFresh/kenney.nl (mirror, CC0 quoted
+  từ kenney.nl; sparse checkout đúng 11 files .glb, không clone cả repo)
+- License: CC0-1.0
+- Files used: `public/assets/vegetation/*.glb` (11 files, tổng ~90KB)
+- Modifications: không (dùng nguyên bản, instance lại trong game)
+- Approx production size: 0.1 MB

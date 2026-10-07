@@ -9,6 +9,7 @@ import { createParticles } from './particles.js';
 import { createAudio } from './audio.js';
 import { createPowerups, MAGNET_RADIUS } from './powerups.js';
 import { createAssetManager } from './assetManager.js';
+import { createForest } from './forest.js';
 import { LANES } from './player.js';
 
 export const SUBSTEP_MAX = 1 / 60;
@@ -68,6 +69,8 @@ export function createGame(container) {
   const audio = createAudio();
   const powerups = createPowerups(scene);
   const assets = createAssetManager();
+  const forest = createForest(scene, assets, { quality: quality.profile });
+  forest.load().catch(() => {}); // GLB lẻ lỗi: rừng procedural/thưa vẫn chạy
   let hitFlag = false;
 
   let state = 'menu'; // menu | playing | gameover (paused tách riêng)
@@ -261,6 +264,7 @@ export function createGame(container) {
     const dt = Math.min(clock.getDelta(), 0.05);
     quality.noteFrame(dt * 1000);
     if (state === 'playing' && !paused) simulate(dt);
+    forest.update(dt, state === 'playing' && !paused ? speed : 0, distance);
     player.visual.setState(visualState());
     player.visual.setLean(
       (LANES[player.laneIndex] - player.mesh.position.x) * 0.1,
