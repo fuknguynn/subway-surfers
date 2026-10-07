@@ -55,16 +55,19 @@ export function createWorld(scene) {
   scene.add(sleepers);
 
   // Nhà 2 bên: 2 InstancedMesh (1 draw call mỗi loại thay vì 24 mesh)
+  // Nhà phải TO vượt trội nhân vật (cao 6-14m, chân đế 5x6m) để đúng tỷ lệ
   const HOUSE_COUNT = 24;
-  const houseGeo = boxGeo(3, 1, 4);
+  const houseGeo = boxGeo(5, 1, 6);
   const houseMeshes = [MAT.houseA, MAT.houseB].map(
     (mat) => new THREE.InstancedMesh(houseGeo, mat, HOUSE_COUNT / 2),
   );
   const houseH = [];
   const houseZ = [];
+  const houseX = [];
   for (let i = 0; i < HOUSE_COUNT; i++) {
-    houseH.push(2 + (i % 4));
+    houseH.push(6 + (i % 5) * 2); // 6..14m
     houseZ.push(10 - i * 8);
+    houseX.push((i % 2 === 0 ? -1 : 1) * (9 + (i % 3) * 2)); // xa làn chơi
   }
   for (const hm of houseMeshes) {
     hm.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -202,7 +205,7 @@ export function createWorld(scene) {
         if (z > DESPAWN_Z + 6) z -= 192;
         houseZ[i] = z;
         const h = houseH[i];
-        dummy.position.set(i % 2 === 0 ? -7 : 7, h / 2, z);
+        dummy.position.set(houseX[i], h / 2, z);
         dummy.scale.set(1, h, 1);
         dummy.updateMatrix();
         houseMeshes[i % 2].setMatrixAt(i >> 1, dummy.matrix);
