@@ -62,6 +62,7 @@ export function createPlayer(scene) {
       group.position.set(0, 0, 0);
       body.scale.y = 1;
       body.position.y = BODY_H / 2;
+      head.position.y = BODY_H + 0.25;
     },
 
     update(dt) {
@@ -82,14 +83,17 @@ export function createPlayer(scene) {
         }
       }
 
-      // Trượt: hạ chiều cao 1 lúc
+      // Trượt: hạ chiều cao 1 lúc (cả thân lẫn đầu, nếu không đầu
+      // vẫn cao 1.65m và xuyên qua rào cao về mặt hình ảnh)
       if (this.slideTimer > 0) {
         this.slideTimer -= dt;
         body.scale.y = 0.5;
         body.position.y = (BODY_H * 0.5) / 2;
+        head.position.y = 0.45;
       } else {
         body.scale.y = 1;
         body.position.y = BODY_H / 2;
+        head.position.y = BODY_H + 0.25;
       }
     },
 
