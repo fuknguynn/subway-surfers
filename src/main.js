@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import './style.css';
 import { createPlayer } from './player.js';
+import { createWorld } from './world.js';
 
 export function initGame() {
   const container = document.getElementById('app');
@@ -21,6 +22,8 @@ export function initGame() {
   container.appendChild(renderer.domElement);
 
   const player = createPlayer(scene);
+  const world = createWorld(scene);
+  let speed = 12; // Task 5: ramp tốc độ theo thời gian
 
   // Input tạm để test Task 2 (Task 4 tách ra src/input.js)
   window.addEventListener('keydown', (e) => {
@@ -30,7 +33,7 @@ export function initGame() {
     else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') player.slide();
   });
 
-  const light = new THREE.HemisphereLight(0xffffff, 0x334455, 1.2);
+  const light = new THREE.HemisphereLight(0xffffff, 0x334455, 0.4);
   scene.add(light);
 
   window.addEventListener('resize', () => {
@@ -44,11 +47,12 @@ export function initGame() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), 0.05);
     player.update(dt);
+    world.update(dt, speed);
     renderer.render(scene, camera);
   }
   loop();
 
-  return { scene, camera, renderer, player };
+  return { scene, camera, renderer, player, world };
 }
 
 initGame();
