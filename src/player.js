@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MAT, part, blobShadow } from './assets.js';
-import { createPlayerVisual } from './playerVisual.js';
+import { createPlayerVisual, VISUAL_HEIGHT } from './playerVisual.js';
 
 export const LANES = [-2, 0, 2];
 
@@ -12,8 +12,7 @@ const SLIDE_DURATION = 0.7;
 const BODY_W = 0.7;
 const BODY_H = 1.4;
 const BODY_D = 0.5;
-const STAND_TOP = 1.7; // đỉnh đầu visual khi đứng (< 1.9 của bounds)
-const SLIDE_SCALE = 0.42; // 1.7 * 0.42 ≈ 0.71 ≈ bounds trượt 0.7
+const SLIDE_SCALE = 0.7 / VISUAL_HEIGHT; // đỉnh visual khi trượt ≈ bounds 0.7
 
 export function createPlayer(scene) {
   const group = new THREE.Group();
@@ -77,6 +76,8 @@ export function createPlayer(scene) {
 
   const shadow = blobShadow(0.9);
   group.add(shadow);
+  // Đồng bộ fallback procedural về cùng chiều cao chuẩn với GLB
+  rig.scale.setScalar(VISUAL_HEIGHT / 1.7);
 
   group.position.set(0, 0, 0);
   scene.add(group);

@@ -10,7 +10,7 @@ export const DEFAULT_CLIP_MAP = {
   slide: 'Slide_Loop',
   hit: 'Hit_Chest',
 };
-export const VISUAL_HEIGHT = 1.75; // scale GLB về chiều cao này (vừa bounds)
+export const VISUAL_HEIGHT = 1.4; // scale GLB về chiều cao này (vừa bounds)
 
 // assets: clipNames (mảng string từ GLB). Thiếu concept nào -> throw liệt kê.
 export function resolveClipMap(clipNames, wanted = DEFAULT_CLIP_MAP) {
