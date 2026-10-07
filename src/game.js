@@ -96,6 +96,7 @@ export function createGame(container) {
     muted: () => audio.isMuted(),
   });
   ui.showMenu(best);
+  ui.hideLoading(); // core đã sẵn sàng: gỡ overlay loading, nếu không nó che HUD + chặn touch
 
   function start() {
     player.reset();
