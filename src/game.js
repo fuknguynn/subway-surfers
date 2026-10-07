@@ -7,6 +7,7 @@ import { createQuality } from './quality.js';
 import { createCamera } from './camera.js';
 import { createParticles } from './particles.js';
 import { createAudio } from './audio.js';
+import { createPowerups, MAGNET_RADIUS } from './powerups.js';
 
 export const SUBSTEP_MAX = 1 / 60;
 export const BASE_SPEED = 12;
@@ -63,6 +64,7 @@ export function createGame(container) {
   camRig.reframe(window.innerWidth / window.innerHeight);
   const particles = createParticles(scene, quality.profile === 'HIGH' ? 120 : 80);
   const audio = createAudio();
+  const powerups = createPowerups(scene);
   let hitFlag = false;
 
   let state = 'menu'; // menu | playing | gameover (paused tách riêng)
@@ -97,6 +99,7 @@ export function createGame(container) {
   function start() {
     player.reset();
     world.reset();
+    powerups.reset();
     speed = BASE_SPEED;
     elapsed = 0;
     distance = 0;
@@ -129,21 +132,28 @@ export function createGame(container) {
     const pb = player.getBounds();
     for (const o of world.getObstacles()) {
       if (boxesOverlap(pb, world.obstacleBounds(o))) {
+        if (powerups.isInvulnerable()) continue;
+        if (powerups.absorbHit()) {
+          audio.power();
+          particles.burst('hit', pb.minX + 0.35, 1.2, 0);
+          continue;
+        }
         gameOver();
         return;
       }
     }
     if (state !== 'playing') return;
+    const r = powerups.isMagnet() ? MAGNET_RADIUS : 0.4;
     for (const c of [...world.getCoins()]) {
       const cb = {
-        minX: c.position.x - 0.4, maxX: c.position.x + 0.4,
-        minY: c.position.y - 0.4, maxY: c.position.y + 0.4,
-        minZ: c.position.z - 0.4, maxZ: c.position.z + 0.4,
+        minX: c.position.x - r, maxX: c.position.x + r,
+        minY: c.position.y - r, maxY: c.position.y + r,
+        minZ: c.position.z - r, maxZ: c.position.z + r,
       };
       if (boxesOverlap(pb, cb, 0)) {
         world.collectCoin(c);
         coins += 1;
-        score += COIN_SCORE;
+        score += COIN_SCORE * powerups.coinMultiplier();
         ui.pulseCoins();
         audio.coin();
         particles.burst('coin', c.position.x, c.position.y, c.position.z);
@@ -157,7 +167,8 @@ export function createGame(container) {
     for (let i = 0; i < count && state === 'playing'; i++) {
       elapsed += h;
       speed = Math.min(BASE_SPEED + elapsed * SPEED_RAMP, MAX_SPEED);
-      score += speed * h;
+      const mult = powerups.coinMultiplier();
+      score += speed * h * mult;
       distance += speed * h;
       player.update(h);
       if (wasGrounded && !player.grounded) audio.jump();
@@ -169,6 +180,10 @@ export function createGame(container) {
         particles.burst('land', player.mesh.position.x, 0.1, 0);
       }
       world.update(h, speed);
+      powerups.update(h, speed, player.getBounds(), world.getReachable(), (kind) => {
+        audio.power();
+        particles.burst('coin', player.mesh.position.x, 1.5, 0);
+      });
       collide();
     }
   }
@@ -217,6 +232,11 @@ export function createGame(container) {
     const dt = Math.min(clock.getDelta(), 0.05);
     quality.noteFrame(dt * 1000);
     if (state === 'playing' && !paused) simulate(dt);
+    // Timer HUD: 1 lần/frame (không gọi trong substep để tránh spam DOM)
+    for (const k of powerups.kinds) {
+      const left = powerups.timers[k];
+      ui.setPowerup(k, left > 0 ? left : null);
+    }
     particles.update(dt);
     camRig.update(dt, {
       speed,

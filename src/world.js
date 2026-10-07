@@ -228,6 +228,10 @@ export function createWorld(scene) {
       return active.coins;
     },
 
+    getReachable() {
+      return [...reachable];
+    },
+
     collectCoin(coin) {
       const i = active.coins.indexOf(coin);
       if (i >= 0) {
