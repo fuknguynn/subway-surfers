@@ -7,6 +7,18 @@ const ROW_GAP = 20;
 const TRAIN_MIN = 8;
 const TRAIN_MAX = 14;
 
+// Va chạm AABB với độ co để công bằng cho người chơi.
+export function boxesOverlap(a, b, shrink = 0.15) {
+  return (
+    a.minX < b.maxX - shrink &&
+    a.maxX > b.minX + shrink &&
+    a.minY < b.maxY - shrink &&
+    a.maxY > b.minY + shrink &&
+    a.minZ < b.maxZ - shrink &&
+    a.maxZ > b.minZ + shrink
+  );
+}
+
 function makeBox(w, h, d, color) {
   return new THREE.Mesh(
     new THREE.BoxGeometry(w, h, d),
@@ -151,8 +163,7 @@ export function createWorld(scene) {
     }
   }
 
-  function boundsOf(m) {
-    const h = m.userData.half;
+  function boundsOf(m) {    const h = m.userData.half;
     const y0 = m.position.y + (m.userData.elevated ? m.userData.elevated : 0);
     return {
       minX: m.position.x - h.x,
@@ -220,6 +231,16 @@ export function createWorld(scene) {
 
     obstacleBounds(m) {
       return boundsOf(m);
+    },
+
+    reset() {
+      for (const m of active.obstacles) release(m.userData.kind, m);
+      for (const c of active.coins) release('coin', c);
+      active.obstacles.length = 0;
+      active.coins.length = 0;
+      distance = 0;
+      lastRowAt = 0;
+      prevSafe = 1;
     },
 
     poolSizes() {

@@ -54,6 +54,16 @@ export function createPlayer(scene) {
       if (this.grounded) this.slideTimer = SLIDE_DURATION;
     },
 
+    reset() {
+      this.laneIndex = 1;
+      this.vy = 0;
+      this.grounded = true;
+      this.slideTimer = 0;
+      group.position.set(0, 0, 0);
+      body.scale.y = 1;
+      body.position.y = BODY_H / 2;
+    },
+
     update(dt) {
       // Đổi làn: lerp x về làn mục tiêu
       const targetX = LANES[this.laneIndex];
