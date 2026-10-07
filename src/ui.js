@@ -4,37 +4,45 @@ export function createUI(handlers = {}) {
   root.style.pointerEvents = 'none';
 
   root.innerHTML = `
-    <div id="ui-loading" class="ui-overlay">
-      <h1>🚇 Subway Mini 3D</h1>
-      <p>Loading...</p>
+    <div id="ui-loading" class="ui-overlay ui-loading">
+      <div class="ui-badge">🌲 FOREST RUNNER</div>
+      <h1 class="ui-title">Subway Mini 3D</h1>
+      <p class="ui-sub">Loading...</p>
       <div id="ui-loadbar"><div id="ui-loadfill"></div></div>
     </div>
-    <div id="ui-score" class="ui-hidden">0m</div>
-    <div id="ui-coins" class="ui-hidden">🪙 0</div>
+    <div id="ui-score" class="ui-hidden"><span id="ui-score-num">0m</span><span class="ui-label">SCORE</span></div>
+    <div id="ui-coins" class="ui-hidden">🪙 <span id="ui-coins-num">0</span></div>
     <div id="ui-timers" class="ui-hidden"></div>
-    <button id="ui-mute" class="ui-hidden">🔊</button>
-    <button id="ui-pausebtn" class="ui-hidden">⏸</button>
+    <button id="ui-mute" class="ui-hidden ui-iconbtn">🔊</button>
+    <button id="ui-pausebtn" class="ui-hidden ui-iconbtn">⏸</button>
     <div id="ui-paused" class="ui-hidden">Tạm dừng — bấm P để tiếp tục</div>
     <div id="ui-rotate" class="ui-hidden">📱 Xoay dọc điện thoại để chơi thoải mái hơn</div>
     <div id="ui-flash" class="ui-hidden"></div>
     <div id="ui-menu" class="ui-overlay ui-hidden">
-      <h1>🚇 Subway Mini 3D</h1>
-      <p>← → đổi làn &nbsp;•&nbsp; ↑ nhảy &nbsp;•&nbsp; ↓ trượt<br/>Vuốt trên mobile • P tạm dừng</p>
-      <p id="ui-menu-best"></p>
-      <button id="ui-start">▶ Chơi</button>
+      <div class="ui-badge">🌲 FOREST RUNNER</div>
+      <h1 class="ui-title">Subway Mini 3D</h1>
+      <p class="ui-best" id="ui-menu-best"></p>
+      <button id="ui-start" class="ui-cta">▶ CHƠI</button>
+      <div class="ui-hints">
+        <span>← → đổi làn</span><span>↑ nhảy</span><span>↓ trượt</span>
+      </div>
     </div>
     <div id="ui-over" class="ui-overlay ui-hidden">
-      <h1>💥 Game Over</h1>
-      <p id="ui-final"></p>
-      <p id="ui-best"></p>
-      <div class="ui-row">
-        <button id="ui-retry">↻ Chơi lại</button>
-        <button id="ui-home">🏠 Home</button>
+      <div class="ui-card">
+        <h1 class="ui-title-sm">💥 Game Over</h1>
+        <p id="ui-final" class="ui-final"></p>
+        <p id="ui-best" class="ui-sub"></p>
+        <div class="ui-row">
+          <button id="ui-retry" class="ui-cta">↻ Chơi lại</button>
+          <button id="ui-home" class="ui-ghost">🏠 Home</button>
+        </div>
       </div>
     </div>`;
 
   const scoreEl = root.querySelector('#ui-score');
+  const scoreNum = root.querySelector('#ui-score-num');
   const coinsEl = root.querySelector('#ui-coins');
+  const coinsNum = root.querySelector('#ui-coins-num');
   const pausedEl = root.querySelector('#ui-paused');
   const rotateEl = root.querySelector('#ui-rotate');
   const flashEl = root.querySelector('#ui-flash');
@@ -80,14 +88,14 @@ export function createUI(handlers = {}) {
     setScore(m, coins) {
       // Chỉ chạm DOM khi text đổi (game gọi mỗi substep)
       const s = `${Math.floor(m)}m`;
-      const c = `🪙 ${coins}`;
+      const c = `${coins}`;
       if (s !== lastScoreText) {
         lastScoreText = s;
-        scoreEl.textContent = s;
+        scoreNum.textContent = s;
       }
       if (c !== lastCoinsText) {
         lastCoinsText = c;
-        coinsEl.textContent = c;
+        coinsNum.textContent = c;
       }
     },
     setPaused(paused) {
