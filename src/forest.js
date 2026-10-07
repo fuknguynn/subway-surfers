@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { MAT, part } from './assets.js';
 import { normalizeToHeight } from './scaleTable.js';
+import { groundHeightAt } from './world.js';
 
 // Rừng núi: chunk tái dùng + theme theo quãng đường (visual only).
 // Vegetation GLB render bằng InstancedMesh (mỗi model 1-2 draws cho mọi slot).
@@ -31,17 +32,17 @@ const DESPAWN_Z = 14;
 
 // Layout data (test được): mọi slot |x|<4.5 phải cao <1.2m.
 export const SLOT_PLAN = [
-  { id: 'treeA', file: 'tree_pineTallA.glb', count: 10, xs: [6, 8, 11, 13], h: 6, kind: 'tree' },
-  { id: 'treeB', file: 'tree_pineTallB.glb', count: 8, xs: [7, 9, 12], h: 7, kind: 'tree' },
-  { id: 'treeC', file: 'tree_oak.glb', count: 6, xs: [6.5, 10], h: 5, kind: 'tree' },
-  { id: 'bushA', file: 'plant_bushLarge.glb', count: 10, xs: [4.8, 6, 8], h: 1.0, kind: 'bush' },
-  { id: 'bushB', file: 'plant_bushSmall.glb', count: 10, xs: [5, 7], h: 0.6, kind: 'bush' },
-  { id: 'grassA', file: 'grass_large.glb', count: 14, xs: [4.6, 5.5, 7, 9], h: 0.4, kind: 'grass' },
-  { id: 'grassB', file: 'grass_leafs.glb', count: 14, xs: [4.6, 6, 8], h: 0.3, kind: 'grass' },
-  { id: 'rockA', file: 'rock_largeA.glb', count: 8, xs: [5.5, 8, 11], h: 1.4, kind: 'rock' },
-  { id: 'rockB', file: 'rock_smallA.glb', count: 8, xs: [5, 7], h: 0.7, kind: 'rock' },
-  { id: 'cliff', file: 'cliff_rock.glb', count: 6, xs: [13, 16], h: 9, kind: 'cliff' },
-  { id: 'logs', file: 'log_stack.glb', count: 4, xs: [7.5, 9], h: 1.2, kind: 'camp' },
+  { id: 'treeA', file: 'tree_pineTallA.glb', count: 10, xs: [6, 8, 11, 13], h: 6, kind: 'tree', th: 12 },
+  { id: 'treeB', file: 'tree_pineTallB.glb', count: 8, xs: [7, 9, 12], h: 7, kind: 'tree', th: 14 },
+  { id: 'treeC', file: 'tree_oak.glb', count: 6, xs: [6.5, 10], h: 5, kind: 'tree', th: 8 },
+  { id: 'bushA', file: 'plant_bushLarge.glb', count: 10, xs: [4.8, 6, 8], h: 1.0, kind: 'bush', th: 1.0 },
+  { id: 'bushB', file: 'plant_bushSmall.glb', count: 10, xs: [5, 7], h: 0.6, kind: 'bush', th: 0.6 },
+  { id: 'grassA', file: 'grass_large.glb', count: 14, xs: [4.6, 5.5, 7, 9], h: 0.4, kind: 'grass', th: 0.4 },
+  { id: 'grassB', file: 'grass_leafs.glb', count: 14, xs: [4.6, 6, 8], h: 0.3, kind: 'grass', th: 0.3 },
+  { id: 'rockA', file: 'rock_largeA.glb', count: 8, xs: [5.5, 8, 11], h: 1.4, kind: 'rock', th: 1.5 },
+  { id: 'rockB', file: 'rock_smallA.glb', count: 8, xs: [5, 7], h: 0.7, kind: 'rock', th: 0.8 },
+  { id: 'cliff', file: 'cliff_rock.glb', count: 6, xs: [13, 16], h: 9, kind: 'cliff', th: 9 },
+  { id: 'logs', file: 'log_stack.glb', count: 4, xs: [7.5, 9], h: 1.2, kind: 'camp', th: 1.2 },
 ];
 
 export function checkOcclusion(plan = SLOT_PLAN) {
@@ -71,6 +72,7 @@ export function createForest(scene, assets, opts = {}) {
   const BRIDGE_N = 3;
   let bridgeMeshes = [];
   const bridgeZ = [];
+  let bridgeK = 1;
   const fogTarget = new THREE.Color(
     scene.fog ? scene.fog.color.getHex() : FOG_TINT.deep,
   );
@@ -84,6 +86,15 @@ export function createForest(scene, assets, opts = {}) {
       model = await assets.loadModel(`veg-${e.id}`, `${base}assets/${dir}/${e.file}`);
     } catch {
       return; // thiếu file lẻ: bỏ qua loại đó
+    }
+    // Chuẩn hóa scale nguồn 1 lần (không tin unit gốc), bake vào slot
+    let normK = 1;
+    try {
+      const box = new THREE.Box3().setFromObject(model);
+      const h0 = box.getSize(new THREE.Vector3()).y;
+      if (h0 > 0 && e.th) normK = e.th / h0;
+    } catch {
+      normK = 1;
     }
       const prims = [];
       model.traverse((o) => {
@@ -110,7 +121,7 @@ export function createForest(scene, assets, opts = {}) {
           rot: (i * 1.7) % 6.28,
         });
       }
-      batches.push({ imeshes, slots, kind: e.kind });
+      batches.push({ imeshes, slots, kind: e.kind, normK });
   }
 
   const CAMP_PLAN = [
@@ -130,6 +141,13 @@ export function createForest(scene, assets, opts = {}) {
     try {
       const base = (import.meta.env && import.meta.env.BASE_URL) || './';
       const bg = await assets.loadModel('prop-bridge', `${base}assets/props/bridge_wood.glb`);
+      try {
+        const bb = new THREE.Box3().setFromObject(bg);
+        const bh = bb.getSize(new THREE.Vector3()).y;
+        if (bh > 0) bridgeK = 1.0 / bh; // mặt cầu cao ~1m
+      } catch {
+        bridgeK = 1;
+      }
       const prims = [];
       bg.traverse((o) => { if (o.isMesh) prims.push({ geo: o.geometry, mat: o.material }); });
       if (prims.length) {
@@ -221,8 +239,8 @@ export function createForest(scene, assets, opts = {}) {
           const show = w >= 1 || (i % 4) / 4 < w;
           for (const im of b.imeshes) {
             if (show) {
-              dummy.position.set(s.x, s.y, s.z);
-              dummy.scale.setScalar(s.s);
+              dummy.position.set(s.x, groundHeightAt(s.x, s.z), s.z);
+              dummy.scale.setScalar(s.s * (b.normK || 1));
               dummy.rotation.set(0, s.rot, 0);
             } else {
               dummy.position.set(0, -999, 0);
@@ -244,9 +262,9 @@ export function createForest(scene, assets, opts = {}) {
         let z = bridgeZ[i] + dz;
         if (z > DESPAWN_Z) z -= 240;
         bridgeZ[i] = z;
-        dummy.position.set(20, 0.4, z);
+        dummy.position.set(20, groundHeightAt(20, z), z);
         dummy.rotation.set(0, Math.PI / 2, 0);
-        dummy.scale.setScalar(1.5);
+        dummy.scale.setScalar(bridgeK);
         dummy.updateMatrix();
         for (const im of bridgeMeshes) im.setMatrixAt(i, dummy.matrix);
       }

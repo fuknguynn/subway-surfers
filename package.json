@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check:mobile": "node scripts/check-mobile.mjs"
+    "check:mobile": "node scripts/check-mobile.mjs",
+    "check:assets": "node scripts/check-assets.mjs",
+    "check:forest": "node scripts/check-forest.mjs"
   },
   "dependencies": {
     "three": "^0.160.0"

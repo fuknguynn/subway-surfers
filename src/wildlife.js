@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { normalizeToHeight } from './scaleTable.js';
+import { groundHeightAt } from './world.js';
 
 // Wildlife visual-only: không va chạm, không vào làn (|x|>=6), không gameplay.
 // Mixer: 1/instance đang animate khi cần, cap toàn cục theo quality, pool
@@ -52,7 +53,8 @@ export function createWildlife(scene, assets, opts = {}) {
         let model = null;
         try {
           model = await assets.loadModel(`wild-${name}`, `${base}assets/wildlife/${s.file}`);
-        } catch {
+        } catch (err) {
+          console.warn(`[wildlife] ${name} model failed (${err && err.message}) — species skipped`);
           continue; // thiếu loài: bỏ qua, các loài khác vẫn sống
         }
         for (let i = 0; i < POOL_EACH; i++) {
@@ -94,7 +96,9 @@ export function createWildlife(scene, assets, opts = {}) {
         if (pool && pool.length) {
           const a = pool.pop();
           const side = rand() < 0.5 ? -1 : 1;
-          a.root.position.set(side * (MIN_X + rand() * 8), 0, SPAWN_Z - rand() * 10);
+          const sx = side * (MIN_X + rand() * 8);
+          const sz = SPAWN_Z - rand() * 10;
+          a.root.position.set(sx, groundHeightAt(sx, sz), sz);
           spawned.push({ species: name, x: a.root.position.x });
           if (spawned.length > 500) spawned.shift();
           a.root.rotation.y = side > 0 ? -Math.PI / 2 + (rand() - 0.5) : Math.PI / 2 + (rand() - 0.5);
@@ -108,6 +112,11 @@ export function createWildlife(scene, assets, opts = {}) {
             for (const [k, n] of Object.entries(SPECIES[name].clips)) {
               const c = a.clips.find((x) => x.name === n);
               if (c) clips[k] = c;
+            }
+            if (!clips.idle || !clips.walk) {
+              console.warn(
+                `[wildlife] ${name} missing clips, have: ${a.clips.map((c) => c.name).join(',') || '(none)'} — static fallback`,
+              );
             }
             if (clips.idle && clips.walk) {
               a.mixer = new THREE.AnimationMixer(a.root);
@@ -125,6 +134,7 @@ export function createWildlife(scene, assets, opts = {}) {
       for (let i = active.length - 1; i >= 0; i--) {
         const a = active[i];
         a.root.position.z += speed * dt * (a.mode === 'walk' ? 0.92 : 1.0);
+        a.root.position.y = groundHeightAt(a.root.position.x, a.root.position.z);
         if (a.mixer && (quality !== 'LOW' || a.root.position.z > -50)) {
           a.mixer.update(dt);
         }

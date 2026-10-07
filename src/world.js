@@ -24,6 +24,16 @@ export function boxesOverlap(a, b, shrink = 0.15) {
 
 const dummy = new THREE.Object3D(); // tái dùng cho InstancedMesh, không alloc/frame
 
+// Độ cao terrain tại (x, z) thế giới — dùng chung cho mọi object đặt trên đất.
+// Khớp công thức displace ở ground bên dưới; |x|<=4.5 luôn phẳng (gameplay).
+export function groundHeightAt(wx, wz) {
+  const ax = Math.abs(wx);
+  if (ax <= 4.5) return 0;
+  const k = Math.min(1, (ax - 4.5) / 8);
+  const ly = -(wz + 80);
+  return k * (Math.sin(wx * 0.35) * 0.9 + Math.sin(ly * 0.12 + wx) * 1.1);
+}
+
 export function createWorld(scene) {
   scene.fog = new THREE.Fog(0x87ceeb, 30, 95);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.1));
@@ -32,18 +42,15 @@ export function createWorld(scene) {
   scene.add(sun);
 
   // Mặt đất + 3 dải ray (material dùng chung)
-  // Terrain gồ ghề ngoài làn chơi (|x|>4.5), giữa ray giữ phẳng gameplay
+  // Terrain gồ ghề ngoài làn chơi (|x|>4.5), giữa ray giữ phẳng gameplay.
+  // Mọi object khác PHẢI lấy cao độ qua groundHeightAt (kẻo lơ lửng/chôn chân).
   const groundGeo = new THREE.PlaneGeometry(64, 220, 32, 44);
   {
     const p = groundGeo.attributes.position;
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i);
       const y = p.getY(i); // trước rotate: y là chiều dọc plane
-      const ax = Math.abs(x);
-      if (ax > 4.5) {
-        const k = Math.min(1, (ax - 4.5) / 8);
-        p.setZ(i, k * (Math.sin(x * 0.35) * 0.9 + Math.sin(y * 0.12 + x) * 1.1));
-      }
+      p.setZ(i, groundHeightAt(x, -80 - y));
     }
     groundGeo.computeVertexNormals();
   }
@@ -265,12 +272,13 @@ export function createWorld(scene) {
         const broken = i % 7 === 3; // cọc gãy nghiêng
         for (let s = 0; s < 2; s++) {
           const x = s === 0 ? -FENCE_X : FENCE_X;
+          const gy = groundHeightAt(x, z);
           if (gap) {
             dummy.position.set(0, -999, 0);
             dummy.scale.setScalar(0.001);
             dummy.rotation.set(0, 0, 0);
           } else {
-            dummy.position.set(x, broken ? 0.35 : 0.55, z);
+            dummy.position.set(x, gy + (broken ? 0.33 : 0.55), z);
             dummy.scale.set(1, broken ? 0.6 : 1, 1);
             dummy.rotation.set(0, 0, broken ? (s === 0 ? 0.35 : -0.35) : 0);
           }
@@ -283,7 +291,7 @@ export function createWorld(scene) {
               dummy.scale.setScalar(0.001);
               dummy.rotation.set(0, 0, 0);
             } else {
-              dummy.position.set(x, 0.45 + r * 0.35, z + 2);
+              dummy.position.set(x, gy + 0.45 + r * 0.35, z + 2);
               dummy.scale.set(1, 1, 1);
               dummy.rotation.set(0, 0, 0);
             }
