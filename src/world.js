@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { LANES } from './player.js';
-import { MAT, GEO, part, blobShadow } from './assets.js';
+import { MAT, GEO, part, blobShadow, boxGeo } from './assets.js';
 import { createPatternGen } from './patterns.js';
 
 const SPAWN_Z = -85;
@@ -54,15 +54,21 @@ export function createWorld(scene) {
   for (let i = 0; i < SLEEPER_COUNT; i++) sleeperZ.push(10 - i * 2);
   scene.add(sleepers);
 
-  // Nhà 2 bên: 2 material dùng chung, khác scale
-  const houses = [];
-  for (let i = 0; i < 24; i++) {
-    const h = 2 + (i % 4);
-    const house = part(3, 1, 4, i % 2 === 0 ? MAT.houseA : MAT.houseB);
-    house.scale.y = h;
-    house.position.set(i % 2 === 0 ? -7 : 7, h / 2, 10 - i * 8);
-    scene.add(house);
-    houses.push(house);
+  // Nhà 2 bên: 2 InstancedMesh (1 draw call mỗi loại thay vì 24 mesh)
+  const HOUSE_COUNT = 24;
+  const houseGeo = boxGeo(3, 1, 4);
+  const houseMeshes = [MAT.houseA, MAT.houseB].map(
+    (mat) => new THREE.InstancedMesh(houseGeo, mat, HOUSE_COUNT / 2),
+  );
+  const houseH = [];
+  const houseZ = [];
+  for (let i = 0; i < HOUSE_COUNT; i++) {
+    houseH.push(2 + (i % 4));
+    houseZ.push(10 - i * 8);
+  }
+  for (const hm of houseMeshes) {
+    hm.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    scene.add(hm);
   }
 
   // Pool obstacle/coin theo loại
@@ -191,10 +197,19 @@ export function createWorld(scene) {
       }
       sleepers.instanceMatrix.needsUpdate = true;
 
-      for (const h of houses) {
-        h.position.z += dz;
-        if (h.position.z > DESPAWN_Z + 6) h.position.z -= 192;
+      for (let i = 0; i < HOUSE_COUNT; i++) {
+        let z = houseZ[i] + dz;
+        if (z > DESPAWN_Z + 6) z -= 192;
+        houseZ[i] = z;
+        const h = houseH[i];
+        dummy.position.set(i % 2 === 0 ? -7 : 7, h / 2, z);
+        dummy.scale.set(1, h, 1);
+        dummy.updateMatrix();
+        houseMeshes[i % 2].setMatrixAt(i >> 1, dummy.matrix);
       }
+      dummy.scale.set(1, 1, 1);
+      houseMeshes[0].instanceMatrix.needsUpdate = true;
+      houseMeshes[1].instanceMatrix.needsUpdate = true;
 
       if (distance - lastRowAt >= ROW_GAP) {
         lastRowAt = distance;

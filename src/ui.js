@@ -62,10 +62,22 @@ export function createUI(handlers = {}) {
   }
   if (handlers.muted) muteBtn.textContent = handlers.muted() ? '🔇' : '🔊';
 
+  let lastScoreText = '';
+  let lastCoinsText = '';
+
   return {
     setScore(m, coins) {
-      scoreEl.textContent = `${Math.floor(m)}m`;
-      coinsEl.textContent = `🪙 ${coins}`;
+      // Chỉ chạm DOM khi text đổi (game gọi mỗi substep)
+      const s = `${Math.floor(m)}m`;
+      const c = `🪙 ${coins}`;
+      if (s !== lastScoreText) {
+        lastScoreText = s;
+        scoreEl.textContent = s;
+      }
+      if (c !== lastCoinsText) {
+        lastCoinsText = c;
+        coinsEl.textContent = c;
+      }
     },
     setPaused(paused) {
       if (paused) show(pausedEl);

@@ -43,8 +43,32 @@ npx vite preview  # kiểm tra bản build trước khi deploy
 
 ## Cấu trúc code
 
-- `src/main.js` — state menu/playing/gameover, va chạm, điểm, tốc độ tăng dần
-- `src/player.js` — đổi làn / nhảy / trượt
-- `src/world.js` — đường ray, tàu, rào, xu + tái chế object (pool)
-- `src/input.js` — phím + swipe
-- `src/ui.js` — HUD, menu, game over, kỷ lục localStorage
+- `src/main.js` — bootstrap + loading (mỏng)
+- `src/game.js` — orchestrator: loop, state, substep chống tunneling, điểm, va chạm
+- `src/player.js` — streetwear runner: đổi làn / nhảy / trượt / animation
+- `src/world.js` — đường ray, tàu, rào, xu + tái chế object (pool), InstancedMesh
+- `src/patterns.js` — pattern + DifficultyManager, fairness chứng minh được
+- `src/input.js` — phím + swipe (1 action/gesture, lock tới touchend)
+- `src/camera.js` — rig follow, FOV theo tốc độ, dip/shake clamp cho mobile
+- `src/quality.js` — DPR cap (mobile 1.5) + adaptive render scale có hysteresis
+- `src/particles.js` — pool burst (xu/tiếp đất/đâm), zero-alloc loop
+- `src/audio.js` — SFX WebAudio procedural, lazy sau chạm đầu, có mute
+- `src/powerups.js` — magnet / shield / 2x, timer freeze khi pause
+- `src/assets.js` — geometry/material dùng chung, palette player nổi bật
+- `src/ui.js` — HUD mobile-first, menu, game over, kỷ lục localStorage
+
+## Perf (đo headless + build)
+
+- `dist/` ~490KB (~127KB gzip) — dưới xa budget 5–8MB.
+- Draw calls ~115 (shader đơn giản), triangles ~3k — nhẹ.
+- Heap phẳng qua 5 chu kỳ play→die→retry (+2.2%, nhiễu).
+- Spawn fairness: 2100 proof-case + DP walk qua stream — 0 vi phạm.
+- `npm run build` PASS, `vite preview` HTTP 200, console sạch ở mức build.
+
+## Test matrix
+
+Tự động (node headless): touch lock/expiry, quality hysteresis, substep
+chống tunneling, pattern proof, pool tái chế, timer freeze — PASS.
+Thủ công trên thiết bị thật (360×800, 390×844, 412×915): start, swipe,
+jump/slide, gesture nhanh, va chạm, game over, retry, ẩn tab, resize, xoay
+màn — cần chơi thử trên điện thoại để xác nhận cuối.
