@@ -33,6 +33,8 @@ export function createAssetManager(opts = {}) {
           done = true;
           entry.status = 'error';
           entry.error = new Error(`AssetTimeout: ${id}`);
+          // Xóa để lần sau thử lại được (late resolve bị chặn bởi done)
+          registry.delete(id);
           reject(entry.error);
         }, timeoutMs);
         const loader = makeLoader();
@@ -121,17 +123,21 @@ export function createAssetManager(opts = {}) {
         registry.delete(id);
         return;
       }
-      e.scene.traverse((o) => {
-        if (o.geometry) o.geometry.dispose();
-        const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
-        for (const m of mats) {
-          for (const k of Object.keys(m)) {
-            const v = m[k];
-            if (v && v.isTexture) v.dispose();
+      if (typeof e.scene.traverse === 'function') {
+        e.scene.traverse((o) => {
+          if (o.geometry) o.geometry.dispose();
+          const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
+          for (const m of mats) {
+            for (const k of Object.keys(m)) {
+              const v = m[k];
+              if (v && v.isTexture) v.dispose();
+            }
+            if (m.dispose) m.dispose();
           }
-          if (m.dispose) m.dispose();
-        }
-      });
+        });
+      } else if (e.scene.close) {
+        e.scene.close(); // ImageBitmap
+      }
       registry.delete(id);
     },
 

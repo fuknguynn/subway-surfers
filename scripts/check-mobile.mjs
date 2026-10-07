@@ -155,5 +155,44 @@ const assets = await import('../src/assets.js');
   check('heap flat over cycles', growth < 0.15);
 }
 
+// 10. Review pins: timeout-retry, mixer stability, clip-name verification
+{
+  const amM = await import('../src/assetManager.js');
+  let fetches = 0;
+  const hanging = () => ({ load: () => { fetches++; } });
+  const am = amM.createAssetManager({ makeLoader: hanging });
+  try { await am.loadModel('r', 'u', { timeoutMs: 30 }); } catch {}
+  try { await am.loadModel('r', 'u', { timeoutMs: 30 }); } catch {}
+  check('timeout evicts, retry refetches', fetches === 2);
+
+  const pv = await import('../src/playerVisual.js');
+  const THREE = await import('three');
+  const v = pv.createPlayerVisual();
+  const mkClip = (n) => new THREE.AnimationClip(n, 1, []);
+  const clips = ['Idle_Loop', 'Jog_Fwd_Loop', 'Jump_Loop', 'Slide_Loop', 'Hit_Chest'].map(mkClip);
+  const root = new THREE.Group();
+  root.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.8, 0.5)));
+  for (let i = 0; i < 5; i++) {
+    v.setModel(root.clone(), clips);
+    v.setState('run');
+    v.update(0.016);
+    v.clearModel();
+  }
+  check('mixer balanced over 5 cycles', v.mixerCount() === 0);
+
+  const fs = await import('node:fs');
+  const buf = fs.readFileSync('public/assets/character/human_male.glb');
+  const jl = buf.readUInt32LE(12);
+  const json = JSON.parse(buf.subarray(20, 20 + jl).toString('utf8'));
+  const names = json.animations.map((a) => a.name);
+  let mapped = null;
+  try {
+    mapped = pv.resolveClipMap(names);
+  } catch (e) {
+    mapped = null;
+  }
+  check('shipped GLB covers all visual states', !!mapped && Object.keys(mapped).length === 5);
+}
+
 console.log(failures === 0 ? '\nALL CHECKS PASS' : `\n${failures} CHECKS FAILED`);
 process.exit(failures === 0 ? 0 : 1);

@@ -105,10 +105,8 @@ export function createGame(container) {
   ui.hideLoading(); // core đã sẵn sàng: gỡ overlay loading, nếu không nó che HUD + chặn touch
 
   // GLB character tải nền: xong thì thay procedural, lỗi thì giữ fallback.
+  // Không đẩy progress ra overlay (menu đã hiện; tải nền im lặng).
   // Gameplay không chờ asset (menu/PLAY sẵn sàng ngay).
-  assets.onProgress((id, loaded, total) => {
-    if (total > 0) ui.showLoading(loaded / total);
-  });
   assets.loadModel('runner', `${import.meta.env.BASE_URL}assets/character/human_male.glb`)
     .then(() => {
       player.setGLBModel(assets.cloneModel('runner'), assets.getClips('runner'));
