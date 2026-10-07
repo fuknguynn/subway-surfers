@@ -94,6 +94,7 @@ export function blobShadow(scale = 1) {
   m.rotation.x = -Math.PI / 2;
   m.position.y = 0.02;
   m.scale.setScalar(scale);
+  m.userData.isBlob = true; // bóng đổ: loại khỏi đo visual-vs-hitbox
   return m;
 }
 

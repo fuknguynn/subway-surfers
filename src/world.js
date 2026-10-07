@@ -139,29 +139,29 @@ export function createWorld(scene) {
   }
 
   const makers = {
-    // Đá tảng: nhảy qua (hitbox 1.6 x 0.9 như cũ)
+    // Đá tảng: nhảy qua (lấp đầy hitbox 1.6 x 0.9, đỉnh đúng 0.9)
     low: () => {
       const g = new THREE.Group();
-      const rock = part(1.5, 0.75, 0.55, MAT.ballast, 0, 0.375, 0);
-      rock.rotation.y = 0.25;
+      const rock = part(1.55, 0.72, 0.55, MAT.ballast, 0, 0.36, 0);
+      rock.rotation.y = 0.08;
       g.add(rock);
-      const top = part(0.8, 0.35, 0.5, MAT.ballast, 0.1, 0.85, 0);
-      top.rotation.y = -0.3;
+      const top = part(1.1, 0.18, 0.5, MAT.ballast, -0.05, 0.81, 0);
+      top.rotation.y = -0.15;
       g.add(top);
-      g.add(part(0.3, 0.15, 0.57, MAT.glow, -0.4, 0.82, 0)); // dấu nhảy
-      g.add(part(0.3, 0.15, 0.57, MAT.glow, 0.4, 0.82, 0));
+      g.add(part(0.3, 0.12, 0.5, MAT.glow, -0.4, 0.84, 0)); // dấu nhảy
+      g.add(part(0.3, 0.12, 0.5, MAT.glow, 0.4, 0.84, 0));
       g.userData.half = { x: 0.8, y: 0.45, z: 0.3 };
       return withBlob(g, 1.6);
     },
-    // Thân cây đổ trên cao: trượt qua (hitbox đáy y=1.1, đỉnh 2.1 như cũ)
+    // Thân cây đổ trên cao: trượt qua (lấp đầy hitbox 1.1..2.1)
     high: () => {
       const g = new THREE.Group();
-      const trunk = new THREE.Mesh(cylGeo(0.45, 0.45, 2.2, 10), MAT.houseB);
+      const trunk = new THREE.Mesh(cylGeo(0.5, 0.5, 1.7, 10), MAT.houseB);
       trunk.rotation.z = Math.PI / 2;
-      trunk.position.set(0, 0.5, 0); // tâm hitbox (1.1..2.1)
+      trunk.position.set(0, 1.6, 0); // 1.1 + 0.5: tâm hitbox, visual khít vùng chết
       g.add(trunk);
-      g.add(part(0.5, 0.3, 0.3, MAT.ground, -0.7, 0.85, 0)); // tán lá
-      g.add(part(0.5, 0.3, 0.3, MAT.ground, 0.7, 0.2, 0));
+      g.add(part(0.5, 0.3, 0.3, MAT.ground, -0.55, 1.95, 0)); // tán lá
+      g.add(part(0.5, 0.3, 0.3, MAT.ground, 0.55, 1.3, 0));
       g.userData.half = { x: 0.8, y: 0.5, z: 0.3 };
       g.userData.elevated = 1.1;
       return g;
@@ -175,8 +175,16 @@ export function createWorld(scene) {
         const log = new THREE.Mesh(cylGeo(0.35, 0.35, len - 2, 10), MAT.houseB);
         log.rotation.x = Math.PI / 2;
         log.position.set(lx, 1.0, 0);
-        g.add(log); // gỗ chở
+        g.add(log); // gỗ chở lớp dưới
       }
+      for (const lx of [-0.25, 0.25]) {
+        const log2 = new THREE.Mesh(cylGeo(0.33, 0.33, len - 2.5, 10), MAT.houseB);
+        log2.rotation.x = Math.PI / 2;
+        log2.position.set(lx, 1.62, 0);
+        g.add(log2); // gỗ chở lớp trên (đỉnh ~1.95 < 2.4)
+      }
+      g.add(part(0.1, 2.0, len - 1, MAT.houseB, -0.8, 1.0, 0)); // ván thành xe
+      g.add(part(0.1, 2.0, len - 1, MAT.houseB, 0.8, 1.0, 0));
       g.add(part(0.15, 0.9, 0.15, MAT.pants, -0.7, 0.9, len / 2 - 0.5)); // cọc giữ
       g.add(part(0.15, 0.9, 0.15, MAT.pants, 0.7, 0.9, len / 2 - 0.5));
       g.add(part(1.5, 0.7, 1.2, MAT.houseB, 0, 1.9, len / 2 - 0.8)); // cabin
@@ -184,7 +192,7 @@ export function createWorld(scene) {
       g.add(part(0.3, 0.3, 0.1, MAT.glow, 0.5, 1.0, len / 2 + 0.01));
       g.add(part(1.5, 0.25, len - 1, MAT.pants, 0, 0.15, 0)); // gầm
       for (const wz of [-1, 1]) {
-        for (const wx of [-0.8, 0.8]) {
+        for (const wx of [-0.75, 0.75]) {
           const wheel = new THREE.Mesh(cylGeo(0.3, 0.3, 0.15, 10), MAT.pants);
           wheel.rotation.z = Math.PI / 2;
           wheel.position.set(wx, 0.3, (wz * (len / 2 - 1)));
