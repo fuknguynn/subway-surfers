@@ -20,17 +20,24 @@ Prior spec: `docs/superpowers/specs/2026-10-07-subway-surfers-3d-design.md`
 
 - New `src/game.js`: `createGame()` owns renderer/scene/camera, RAF loop, states
   (menu/playing/paused/gameover), delta clamp 0.05, visibilitychange auto-pause
-  (gameplay + timers + audio), speed/score accounting.
+  (gameplay + timers + audio), speed/score accounting. Movement + collision run
+  in fixed substeps of at most ~1/60s per frame (subdivide large deltas, check
+  collision per substep) so high speed + frame drops can never tunnel through
+  obstacles; end-of-frame AABB alone is not sufficient.
 - `src/main.js` becomes thin bootstrap: loading screen -> createGame -> menu.
 - Gameplay systems keep behavior; only wiring moves into Game.
 - New modules, one responsibility each:
   - `src/camera.js` — follow rig (smooth follow, bob, lane lean, FOV by speed,
     landing dip, hit shake; all subtle, clamped amplitudes).
   - `src/quality.js` — LOW/MEDIUM/HIGH profiles (default MEDIUM on mobile);
-    DPR cap (mobile <=1.5, desktop <=2, adaptive render scale down when avg frame
-    >22ms over ~120 frames).
+    DPR cap (mobile <=1.5, desktop <=2, adaptive render scale). Adaptivity has
+    hysteresis: at most one render-scale/quality change per 8s cooldown, trigger
+    down when avg frame >22ms over ~120 frames, trigger up only after sustained
+    avg frame <14ms over ~600 frames (upscale slower than downscale).
   - `src/patterns.js` — pattern table + DifficultyManager (unlock harder patterns
-    over time/distance; every pattern declares a survivable path).
+    over time/distance; the generator receives the previous reachable lanes and
+    each emitted pattern must prove at least one valid action sequence through
+    it — patterns may force lane changes but never unbeatable ones).
   - `src/audio.js` — procedural WebAudio SFX (coin, jump, slide, hit, UI),
     init/resume only after first user gesture, mute toggle, suspend on hidden tab.
   - `src/particles.js` — pooled bursts (coin pickup, landing puff, hit spark),
@@ -47,8 +54,10 @@ Prior spec: `docs/superpowers/specs/2026-10-07-subway-surfers-3d-design.md`
 - Keep viewport meta + add `viewport-fit=cover`; HUD respects
   `env(safe-area-inset-*)`; no hardcoded resolutions.
 - Portrait-first; landscape with very short height shows lightweight rotate hint.
-- Touch: threshold ~24px, max duration ~500ms, dominant-axis lock at threshold
-  (act without waiting for touchend), ignore 2nd finger, no double-trigger.
+- Touch: threshold ~24 CSS px (not device px), max duration ~500ms,
+  dominant-axis lock fires the action as soon as the threshold is crossed
+  (no waiting for touchend), exactly one action per gesture with the gesture
+  locked until touchend/touchcancel, ignore 2nd finger, no double-trigger.
 - Camera aspect/FOV adapts to narrow screens; player + upcoming obstacles readable.
 - Delta clamp + visibility pause centralized in Game (already exist, move as-is).
 
@@ -77,8 +86,10 @@ Prior spec: `docs/superpowers/specs/2026-10-07-subway-surfers-3d-design.md`
 
 - Replace pure-random rows with pattern list: straight/zigzag/arch coins, train
   corridor, forced lane switch, jump barrier, slide barrier, jump-coin line,
-  double train, S-curve. Each pattern has a guaranteed survivable lane reachable
-  from any previous safe lane.
+  double train, S-curve. The generator receives the previous reachable lanes and
+  each pattern must prove at least one valid action sequence through it:
+  patterns may demand lane changes, jumps, or slides, but never an unavoidable
+  collision.
 - DifficultyManager: speed ramp (keep current curve shape) + pattern unlock +
   tighter reaction windows. Never unbeatable by construction.
 
