@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { LANES } from './player.js';
+import { MAT, GEO, part, blobShadow } from './assets.js';
 
 const SPAWN_Z = -85;
 const DESPAWN_Z = 12;
 const ROW_GAP = 20;
 const TRAIN_MIN = 8;
 const TRAIN_MAX = 14;
+const SLEEPER_COUNT = 60;
 
 // Va chạm AABB với độ co để công bằng cho người chơi.
 export function boxesOverlap(a, b, shrink = 0.15) {
@@ -19,12 +21,7 @@ export function boxesOverlap(a, b, shrink = 0.15) {
   );
 }
 
-function makeBox(w, h, d, color) {
-  return new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, d),
-    new THREE.MeshStandardMaterial({ color }),
-  );
-}
+const dummy = new THREE.Object3D(); // tái dùng cho InstancedMesh, không alloc/frame
 
 export function createWorld(scene) {
   scene.fog = new THREE.Fog(0x87ceeb, 30, 95);
@@ -33,41 +30,36 @@ export function createWorld(scene) {
   sun.position.set(5, 10, 5);
   scene.add(sun);
 
-  // Mặt đất + 3 dải ray
+  // Mặt đất + 3 dải ray (material dùng chung)
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(30, 220),
-    new THREE.MeshStandardMaterial({ color: 0x3a7d44 }),
+    MAT.ground,
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.z = -80;
   scene.add(ground);
 
   for (const x of LANES) {
-    const rail = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.6, 220),
-      new THREE.MeshStandardMaterial({ color: 0x555555 }),
-    );
+    const rail = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 220), MAT.road);
     rail.rotation.x = -Math.PI / 2;
     rail.position.set(x, 0.01, -80);
     scene.add(rail);
   }
 
-  // Vạch tà vẹt trôi để tạo cảm giác tốc độ (pool)
-  const sleepers = [];
-  for (let i = 0; i < 60; i++) {
-    const s = makeBox(7.5, 0.04, 0.5, 0x777777);
-    s.position.set(0, 0.02, 10 - i * 2);
-    scene.add(s);
-    sleepers.push(s);
-  }
+  // Tà vẹt: 1 InstancedMesh duy nhất
+  const sleeperGeo = new THREE.BoxGeometry(7.5, 0.04, 0.5);
+  const sleepers = new THREE.InstancedMesh(sleeperGeo, MAT.sleeper, SLEEPER_COUNT);
+  const sleeperZ = [];
+  for (let i = 0; i < SLEEPER_COUNT; i++) sleeperZ.push(10 - i * 2);
+  scene.add(sleepers);
 
-  // Nhà 2 bên trang trí (pool, đặt xen kẽ)
+  // Nhà 2 bên: 2 material dùng chung, khác scale
   const houses = [];
   for (let i = 0; i < 24; i++) {
-    const h = 2 + Math.random() * 3;
-    const house = makeBox(3, h, 4, 0xcc8855 + ((i * 12345) % 0x333333));
-    const side = i % 2 === 0 ? -1 : 1;
-    house.position.set(side * (6 + Math.random() * 3), h / 2, 10 - i * 8);
+    const h = 2 + (i % 4);
+    const house = part(3, 1, 4, i % 2 === 0 ? MAT.houseA : MAT.houseB);
+    house.scale.y = h;
+    house.position.set(i % 2 === 0 ? -7 : 7, h / 2, 10 - i * 8);
     scene.add(house);
     houses.push(house);
   }
@@ -92,36 +84,45 @@ export function createWorld(scene) {
     pools[kind].push(mesh);
   }
 
+  function withBlob(group, scale) {
+    const b = blobShadow(scale);
+    group.add(b);
+    return group;
+  }
+
   const makers = {
-    // Rào thấp: nhảy qua (cao 0.9)
+    // Rào thấp: nhảy qua (hitbox cao 0.9, visual tương đương)
     low: () => {
-      const m = makeBox(1.6, 0.9, 0.6, 0xffaa00);
-      m.userData.half = { x: 0.8, y: 0.45, z: 0.3 };
-      return m;
+      const g = new THREE.Group();
+      g.add(part(1.6, 0.9, 0.5, MAT.barrierLow, 0, 0.45, 0));
+      g.add(part(0.25, 0.7, 0.54, MAT.glow, -0.4, 0.45, 0)); // chevron
+      g.add(part(0.25, 0.7, 0.54, MAT.glow, 0.4, 0.45, 0));
+      g.userData.half = { x: 0.8, y: 0.45, z: 0.3 };
+      return withBlob(g, 1.6);
     },
-    // Rào cao: trượt qua (đáy ở y=1.1, đỉnh 2.1)
+    // Rào cao: trượt qua (hitbox đáy y=1.1, đỉnh 2.1)
     high: () => {
-      const m = makeBox(1.6, 1.0, 0.6, 0xff3300);
-      m.userData.half = { x: 0.8, y: 0.5, z: 0.3 };
-      m.userData.elevated = 1.1;
-      return m;
+      const g = new THREE.Group();
+      g.add(part(1.6, 1.0, 0.5, MAT.barrierHigh, 0, 0, 0));
+      g.add(part(0.2, 1.0, 0.54, MAT.glow, -0.5, 0, 0));
+      g.add(part(0.2, 1.0, 0.54, MAT.glow, 0.5, 0, 0));
+      g.userData.half = { x: 0.8, y: 0.5, z: 0.3 };
+      g.userData.elevated = 1.1;
+      return g;
     },
-    // Tàu dài: phải đổi làn
+    // Tàu dài: phải đổi làn (hitbox cao 2.4)
     train: () => {
       const len = TRAIN_MIN + Math.random() * (TRAIN_MAX - TRAIN_MIN);
-      const m = makeBox(1.7, 2.4, len, 0x2266aa);
-      m.userData.half = { x: 0.85, y: 1.2, z: len / 2 };
-      return m;
+      const g = new THREE.Group();
+      g.add(part(1.7, 2.0, len, MAT.train, 0, 1.0, 0));
+      g.add(part(1.5, 0.7, 1.2, MAT.trainDark, 0, 1.9, len / 2 - 0.8)); // cabin
+      g.add(part(0.3, 0.3, 0.1, MAT.glow, -0.5, 1.0, len / 2 + 0.01)); // đèn
+      g.add(part(0.3, 0.3, 0.1, MAT.glow, 0.5, 1.0, len / 2 + 0.01));
+      g.userData.half = { x: 0.85, y: 1.2, z: len / 2 };
+      return withBlob(g, 2.2);
     },
     coin: () => {
-      const m = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.35, 0.35, 0.12, 16),
-        new THREE.MeshStandardMaterial({
-          color: 0xffd700,
-          metalness: 0.6,
-          roughness: 0.3,
-        }),
-      );
+      const m = new THREE.Mesh(GEO.coin, MAT.coin);
       m.rotation.x = Math.PI / 2;
       return m;
     },
@@ -163,7 +164,8 @@ export function createWorld(scene) {
     }
   }
 
-  function boundsOf(m) {    const h = m.userData.half;
+  function boundsOf(m) {
+    const h = m.userData.half;
     const y0 = m.position.y + (m.userData.elevated ? m.userData.elevated : 0);
     return {
       minX: m.position.x - h.x,
@@ -180,10 +182,16 @@ export function createWorld(scene) {
       const dz = speed * dt;
       distance += dz;
 
-      for (const s of sleepers) {
-        s.position.z += dz;
-        if (s.position.z > DESPAWN_Z) s.position.z -= 120;
+      for (let i = 0; i < SLEEPER_COUNT; i++) {
+        let z = sleeperZ[i] + dz;
+        if (z > DESPAWN_Z) z -= 120;
+        sleeperZ[i] = z;
+        dummy.position.set(0, 0.02, z);
+        dummy.updateMatrix();
+        sleepers.setMatrixAt(i, dummy.matrix);
       }
+      sleepers.instanceMatrix.needsUpdate = true;
+
       for (const h of houses) {
         h.position.z += dz;
         if (h.position.z > DESPAWN_Z + 6) h.position.z -= 192;
