@@ -3,6 +3,7 @@ import { createPlayer } from './player.js';
 import { createWorld, boxesOverlap } from './world.js';
 import { bindInput } from './input.js';
 import { createUI } from './ui.js';
+import { createQuality } from './quality.js';
 
 export const SUBSTEP_MAX = 1 / 60;
 export const BASE_SPEED = 12;
@@ -54,6 +55,7 @@ export function createGame(container) {
 
   const player = createPlayer(scene);
   const world = createWorld(scene);
+  const quality = createQuality(renderer);
 
   let state = 'menu'; // menu | playing | paused(hidden) — paused tách riêng
   let paused = false;
@@ -127,6 +129,7 @@ export function createGame(container) {
   }
 
   bindInput(player, {
+    canvas: renderer.domElement,
     onPause: () => {
       if (state !== 'playing') return;
       paused = !paused;
@@ -134,11 +137,20 @@ export function createGame(container) {
     },
   });
 
+  function updateRotateHint() {
+    ui.showRotateHint(
+      window.innerWidth > window.innerHeight && window.innerHeight < 420,
+    );
+  }
+
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    quality.applyDPR();
+    updateRotateHint();
   });
+  updateRotateHint();
 
   // Ẩn tab thì tự pause để không bị xuyên obstacle khi quay lại
   document.addEventListener('visibilitychange', () => {
@@ -152,13 +164,14 @@ export function createGame(container) {
   function loop() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), 0.05);
+    quality.noteFrame(dt * 1000);
     if (state === 'playing' && !paused) simulate(dt);
     renderer.render(scene, camera);
   }
   loop();
 
   return {
-    scene, camera, renderer, player, world, ui,
+    scene, camera, renderer, player, world, ui, quality,
     start,
     getState: () => (paused ? 'paused' : state),
   };
