@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { LANES } from './player.js';
 import { MAT, GEO, part, blobShadow } from './assets.js';
+import { createPatternGen } from './patterns.js';
 
 const SPAWN_Z = -85;
 const DESPAWN_Z = 12;
@@ -131,36 +132,34 @@ export function createWorld(scene) {
   let distance = 0;
   let lastRowAt = 0;
   let rowId = 0;
-  let prevSafe = 1;
+  const gen = createPatternGen();
+  let reachable = [1];
+  let pendingRows = [];
 
   function spawnRow() {
+    if (pendingRows.length === 0) {
+      const out = gen.next(reachable, distance);
+      reachable = out.reachable;
+      pendingRows = out.rows;
+    }
+    const row = pendingRows.shift();
     rowId += 1;
-    // Làn an toàn: giữ nguyên hoặc kề làn trước (luôn tới được)
-    const options = [prevSafe];
-    if (prevSafe > 0) options.push(prevSafe - 1);
-    if (prevSafe < 2) options.push(prevSafe + 1);
-    const safe = options[Math.floor(Math.random() * options.length)];
-    prevSafe = safe;
 
-    for (let lane = 0; lane < 3; lane++) {
-      if (lane === safe) continue;
-      const r = Math.random();
-      const kind = r < 0.4 ? 'low' : r < 0.7 ? 'high' : 'train';
-      const m = obtain(kind, makers[kind]);
-      m.position.set(LANES[lane], 0, SPAWN_Z);
+    for (const spec of row.obstacles) {
+      const m = obtain(spec.kind, makers[spec.kind]);
+      m.position.set(LANES[spec.lane], 0, SPAWN_Z);
       m.visible = true;
-      m.userData.lane = lane;
+      m.userData.lane = spec.lane;
       m.userData.row = rowId;
-      m.userData.kind = kind;
+      m.userData.kind = spec.kind;
       active.obstacles.push(m);
     }
 
-    // Hàng xu dọc làn an toàn
-    for (let i = 0; i < 5; i++) {
-      const c = obtain('coin', makers.coin);
-      c.position.set(LANES[safe], 1.0, SPAWN_Z - i * 2);
-      c.visible = true;
-      active.coins.push(c);
+    for (const c of row.coins) {
+      const coin = obtain('coin', makers.coin);
+      coin.position.set(LANES[c.lane], 1.0, SPAWN_Z + (c.dz || 0));
+      coin.visible = true;
+      active.coins.push(coin);
     }
   }
 
@@ -248,7 +247,10 @@ export function createWorld(scene) {
       active.coins.length = 0;
       distance = 0;
       lastRowAt = 0;
-      prevSafe = 1;
+      rowId = 0;
+      gen.reset();
+      reachable = [1];
+      pendingRows = [];
     },
 
     poolSizes() {
