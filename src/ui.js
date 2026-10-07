@@ -13,6 +13,7 @@ export function createUI(handlers = {}) {
     <div id="ui-coins" class="ui-hidden">🪙 0</div>
     <div id="ui-timers" class="ui-hidden"></div>
     <button id="ui-mute" class="ui-hidden">🔊</button>
+    <button id="ui-pausebtn" class="ui-hidden">⏸</button>
     <div id="ui-paused" class="ui-hidden">Tạm dừng — bấm P để tiếp tục</div>
     <div id="ui-rotate" class="ui-hidden">📱 Xoay dọc điện thoại để chơi thoải mái hơn</div>
     <div id="ui-flash" class="ui-hidden"></div>
@@ -40,7 +41,14 @@ export function createUI(handlers = {}) {
   const loadingEl = root.querySelector('#ui-loading');
   const loadFill = root.querySelector('#ui-loadfill');
   const muteBtn = root.querySelector('#ui-mute');
+  const pauseBtn = root.querySelector('#ui-pausebtn');
   const timersEl = root.querySelector('#ui-timers');
+  const timerCache = new Map(); // name -> last text (tránh chạm DOM mỗi frame)
+
+  function powerupText(name, secondsLeft) {
+    const icons = { magnet: '🧲', shield: '🛡️', multi: '✌️' };
+    return `${icons[name] || name} ${Math.ceil(secondsLeft)}s`;
+  }
   const menuEl = root.querySelector('#ui-menu');
   const overEl = root.querySelector('#ui-over');
 
@@ -61,6 +69,9 @@ export function createUI(handlers = {}) {
     });
   }
   if (handlers.muted) muteBtn.textContent = handlers.muted() ? '🔇' : '🔊';
+  if (handlers.onPauseBtn) {
+    pauseBtn.addEventListener('click', handlers.onPauseBtn);
+  }
 
   let lastScoreText = '';
   let lastCoinsText = '';
@@ -101,6 +112,7 @@ export function createUI(handlers = {}) {
       hide(coinsEl);
       hide(timersEl);
       hide(muteBtn);
+      hide(pauseBtn);
       show(menuEl);
       root.querySelector('#ui-menu-best').textContent =
         best > 0 ? `Kỷ lục: ${Math.floor(best)}m` : '';
@@ -112,6 +124,7 @@ export function createUI(handlers = {}) {
       show(coinsEl);
       show(timersEl);
       show(muteBtn);
+      show(pauseBtn);
     },
     showGameOver(stats) {
       const { score, best, distance, coins, isNewBest } = stats;
@@ -131,18 +144,22 @@ export function createUI(handlers = {}) {
       hide(loadingEl);
     },
     setPowerup(name, secondsLeft) {
-      let el = timersEl.querySelector(`[data-pu="${name}"]`);
       if (secondsLeft == null) {
+        const el = timersEl.querySelector(`[data-pu="${name}"]`);
         if (el) el.remove();
+        timerCache.delete(name);
         return;
       }
+      const text = powerupText(name, secondsLeft);
+      if (timerCache.get(name) === text) return; // giây chưa đổi: bỏ qua DOM
+      timerCache.set(name, text);
+      let el = timersEl.querySelector(`[data-pu="${name}"]`);
       if (!el) {
         el = document.createElement('div');
         el.dataset.pu = name;
         timersEl.appendChild(el);
       }
-      const icons = { magnet: '🧲', shield: '🛡️', multi: '✌️' };
-      el.textContent = `${icons[name] || name} ${Math.ceil(secondsLeft)}s`;
+      el.textContent = text;
     },
   };
 }

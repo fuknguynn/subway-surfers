@@ -84,6 +84,7 @@ export function createGame(container) {
       audio.click();
       start();
     },
+    onPauseBtn: () => togglePause(),
     onHome: () => {
       audio.click();
       state = 'menu';
@@ -188,13 +189,15 @@ export function createGame(container) {
     }
   }
 
+  function togglePause() {
+    if (state !== 'playing') return;
+    paused = !paused;
+    ui.setPaused(paused);
+  }
+
   bindInput(player, {
     canvas: renderer.domElement,
-    onPause: () => {
-      if (state !== 'playing') return;
-      paused = !paused;
-      ui.setPaused(paused);
-    },
+    onPause: () => togglePause(),
   });
 
   function updateRotateHint() {

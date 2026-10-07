@@ -28,8 +28,8 @@ body {
 
 #ui-score {
   position: absolute;
-  top: 12px;
-  left: 16px;
+  top: calc(12px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
   font-size: 28px;
   font-weight: 800;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
@@ -37,8 +37,8 @@ body {
 
 #ui-coins {
   position: absolute;
-  top: 12px;
-  right: 16px;
+  top: calc(12px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
   font-size: 22px;
   font-weight: 700;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
@@ -75,8 +75,8 @@ body {
 
 #ui-timers {
   position: absolute;
-  top: 52px;
-  left: 16px;
+  top: calc(52px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -88,7 +88,22 @@ body {
 #ui-mute {
   position: absolute;
   bottom: calc(16px + env(safe-area-inset-bottom));
-  right: 16px;
+  right: calc(16px + env(safe-area-inset-right));
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+#ui-pausebtn {
+  position: absolute;
+  top: calc(52px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
   width: 48px;
   height: 48px;
   font-size: 22px;

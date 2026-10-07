@@ -67,8 +67,13 @@ npx vite preview  # kiểm tra bản build trước khi deploy
 
 ## Test matrix
 
-Tự động (node headless): touch lock/expiry, quality hysteresis, substep
-chống tunneling, pattern proof, pool tái chế, timer freeze — PASS.
+Tự động, reproducible — chạy `npm run check:mobile` (`scripts/check-mobile.mjs`):
+touch 1-action/gesture, quality hysteresis (down/up/cooldown), substep chống
+tunneling, pattern proof walk, no-repeat jumpCoinLine, power-up spawn/timer/
+absorb, particle pool, materials, bounds — PASS.
+Số liệu draw calls/triangles/heap/dist đo bằng script headless + build log
+(xem commit "chore: perf pass"); FPS thực tế trên GPU chỉ đo được trên
+thiết bị thật.
 Thủ công trên thiết bị thật (360×800, 390×844, 412×915): start, swipe,
 jump/slide, gesture nhanh, va chạm, game over, retry, ẩn tab, resize, xoay
 màn — cần chơi thử trên điện thoại để xác nhận cuối.

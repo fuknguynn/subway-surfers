@@ -179,13 +179,23 @@ export function createDifficulty() {
 export function createPatternGen(opts = {}) {
   const rand = opts.random || Math.random;
   const difficulty = createDifficulty();
+  let lastName = null;
   return {
     patternNames: PATTERN_NAMES,
     next(prevReachable, distanceM = 0) {
       const allowed = difficulty.allowed(distanceM);
-      const name = allowed[Math.floor(rand() * allowed.length)];
+      let name = allowed[Math.floor(rand() * allowed.length)];
+      // Không lặp jumpCoinLine 2 lần liên tiếp: rejump window ~17ms ở tốc
+      // độ cao coi như không thể né bằng phản xạ.
+      if (name === 'jumpCoinLine' && lastName === 'jumpCoinLine') {
+        const others = allowed.filter((n) => n !== 'jumpCoinLine');
+        name = others[Math.floor(rand() * others.length)];
+      }
+      lastName = name;
       return generatePattern(name, prevReachable, rand);
     },
-    reset() {},
+    reset() {
+      lastName = null;
+    },
   };
 }
