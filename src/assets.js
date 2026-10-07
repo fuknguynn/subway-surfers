@@ -30,6 +30,17 @@ export function boxGeo(w, h, d) {
   return g;
 }
 
+const cylCache = new Map();
+export function cylGeo(rt, rb, h, seg = 10) {
+  const key = `${rt}|${rb}|${h}|${seg}`;
+  let g = cylCache.get(key);
+  if (!g) {
+    g = new THREE.CylinderGeometry(rt, rb, h, seg);
+    cylCache.set(key, g);
+  }
+  return g;
+}
+
 function std(color, opts = {}) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0, ...opts });
 }

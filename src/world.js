@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { LANES } from './player.js';
-import { MAT, GEO, part, blobShadow, boxGeo } from './assets.js';
+import { MAT, GEO, part, blobShadow, boxGeo, cylGeo } from './assets.js';
 import { createPatternGen } from './patterns.js';
 
 const SPAWN_Z = -85;
@@ -120,14 +120,31 @@ export function createWorld(scene) {
       g.userData.elevated = 1.1;
       return g;
     },
-    // Tàu dài: phải đổi làn (hitbox cao 2.4)
+    // Tàu gỗ chở gỗ: toa dài, phải đổi làn (hitbox cao 2.4, dài 8-14)
     train: () => {
       const len = TRAIN_MIN + Math.random() * (TRAIN_MAX - TRAIN_MIN);
       const g = new THREE.Group();
-      g.add(part(1.7, 2.0, len, MAT.train, 0, 1.0, 0));
-      g.add(part(1.5, 0.7, 1.2, MAT.trainDark, 0, 1.9, len / 2 - 0.8)); // cabin
+      g.add(part(1.7, 0.3, len, MAT.pants, 0, 0.35, 0)); // khung gầm
+      for (const lx of [-0.5, 0, 0.5]) {
+        const log = new THREE.Mesh(cylGeo(0.35, 0.35, len - 2, 10), MAT.houseB);
+        log.rotation.x = Math.PI / 2;
+        log.position.set(lx, 1.0, 0);
+        g.add(log); // gỗ chở
+      }
+      g.add(part(0.15, 0.9, 0.15, MAT.pants, -0.7, 0.9, len / 2 - 0.5)); // cọc giữ
+      g.add(part(0.15, 0.9, 0.15, MAT.pants, 0.7, 0.9, len / 2 - 0.5));
+      g.add(part(1.5, 0.7, 1.2, MAT.houseB, 0, 1.9, len / 2 - 0.8)); // cabin
       g.add(part(0.3, 0.3, 0.1, MAT.glow, -0.5, 1.0, len / 2 + 0.01)); // đèn
       g.add(part(0.3, 0.3, 0.1, MAT.glow, 0.5, 1.0, len / 2 + 0.01));
+      g.add(part(1.5, 0.25, len - 1, MAT.pants, 0, 0.15, 0)); // gầm
+      for (const wz of [-1, 1]) {
+        for (const wx of [-0.8, 0.8]) {
+          const wheel = new THREE.Mesh(cylGeo(0.3, 0.3, 0.15, 10), MAT.pants);
+          wheel.rotation.z = Math.PI / 2;
+          wheel.position.set(wx, 0.3, (wz * (len / 2 - 1)));
+          g.add(wheel);
+        }
+      }
       g.userData.half = { x: 0.85, y: 1.2, z: len / 2 };
       return withBlob(g, 2.2);
     },
