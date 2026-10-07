@@ -52,8 +52,8 @@ export function createGame(container) {
     0.1,
     200,
   );
-  camera.position.set(0, 3.2, 6.5);
-  camera.lookAt(0, 1, -6);
+  camera.position.set(0, 4.6, 10.2);
+  camera.lookAt(0, 1.2, -8);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);

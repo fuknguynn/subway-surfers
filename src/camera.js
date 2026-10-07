@@ -2,9 +2,9 @@ import * as THREE from 'three';
 
 // Camera rig: follow mượt + bob + lean + FOV theo tốc độ + dip/shake.
 // Mọi biên độ đều clamp cho màn hình nhỏ. Không cấp phát trong update.
-const BASE_POS = { x: 0, y: 3.2, z: 6.5 };
-const PORTRAIT_POS = { x: 0, y: 3.9, z: 8.2 };
-const LOOK = { x: 0, y: 1, z: -6 };
+const BASE_POS = { x: 0, y: 4.0, z: 9.0 };
+const PORTRAIT_POS = { x: 0, y: 4.6, z: 10.2 };
+const LOOK = { x: 0, y: 1.2, z: -8 };
 const FOV_MIN = 60;
 const FOV_MAX = 72;
 const SPEED_MIN = 12;
