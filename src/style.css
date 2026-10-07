@@ -4,12 +4,13 @@ body {
   padding: 0;
   overflow: hidden;
   height: 100%;
-  background: #87ceeb;
-  font-family: system-ui, sans-serif;
+  background: #0e2a1f;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 #app canvas {
   display: block;
+  touch-action: none;
 }
 
 #hud {
@@ -18,24 +19,50 @@ body {
   pointer-events: none;
   color: #fff;
   user-select: none;
+  -webkit-user-select: none;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
+/* HUD: score khối + coin pill */
 #ui-score {
   position: absolute;
-  top: 12px;
-  left: 16px;
-  font-size: 28px;
-  font-weight: 800;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  top: calc(12px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+#ui-score-num {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+}
+
+#hud .ui-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  opacity: 0.75;
 }
 
 #ui-coins {
   position: absolute;
-  top: 12px;
-  right: 16px;
-  font-size: 22px;
-  font-weight: 700;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  top: calc(14px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+  font-size: 20px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 6px 14px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  transition: transform 0.12s ease-out;
+  display: inline-block;
 }
 
 #ui-paused {
@@ -47,6 +74,67 @@ body {
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
+#ui-rotate {
+  position: absolute;
+  bottom: 12%;
+  width: 100%;
+  text-align: center;
+  font-size: 16px;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+#ui-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 40, 30, 0.35);
+}
+
+#ui-timers {
+  position: absolute;
+  top: calc(64px + env(safe-area-inset-top));
+  left: calc(16px + env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#ui-timers > div {
+  font-size: 15px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.ui-iconbtn {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  font-size: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.ui-iconbtn:active {
+  transform: scale(0.9);
+}
+
+#ui-mute {
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  right: calc(16px + env(safe-area-inset-right));
+}
+
+#ui-pausebtn {
+  top: calc(64px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+}
+
+/* Overlay + thẻ + nút */
 .ui-overlay {
   position: absolute;
   inset: 0;
@@ -54,28 +142,145 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  background: rgba(0, 0, 0, 0.55);
+  gap: 14px;
+  background: linear-gradient(180deg, rgba(6, 26, 18, 0.72), rgba(6, 26, 18, 0.55));
   pointer-events: auto;
   text-align: center;
   padding: 16px;
 }
 
-.ui-overlay h1 {
-  margin: 0;
-  font-size: 34px;
+.ui-badge {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 6px 16px;
 }
 
-.ui-overlay button {
-  pointer-events: auto;
+.ui-title {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  background: linear-gradient(180deg, #fff8e7, #ffc44d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+}
+
+.ui-title-sm {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.ui-sub {
+  margin: 0;
+  font-size: 16px;
+  opacity: 0.85;
+}
+
+.ui-best {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffd94d;
+  min-height: 24px;
+}
+
+.ui-final {
+  margin: 6px 0 0;
   font-size: 20px;
-  padding: 12px 32px;
-  border: none;
-  border-radius: 10px;
-  background: #ffaa00;
-  color: #222;
   font-weight: 800;
+}
+
+.ui-cta {
+  pointer-events: auto;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #3a2200;
+  padding: 14px 52px;
+  border: none;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffd94d, #ff9d00);
+  box-shadow: 0 6px 0 #b25e00, 0 10px 24px rgba(0, 0, 0, 0.45);
   cursor: pointer;
+  transition: transform 0.08s ease-out, box-shadow 0.08s ease-out;
+}
+
+.ui-cta:active {
+  transform: translateY(4px) scale(0.98);
+  box-shadow: 0 2px 0 #b25e00, 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.ui-ghost {
+  pointer-events: auto;
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  padding: 14px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: transform 0.08s ease-out;
+}
+
+.ui-ghost:active {
+  transform: scale(0.95);
+}
+
+.ui-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: rgba(10, 34, 24, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 24px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+  padding: 28px 32px;
+}
+
+.ui-hints {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ui-hints span {
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+
+.ui-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+#ui-loadbar {
+  width: 220px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+#ui-loadfill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ffd94d, #ff9d00);
+  border-radius: 999px;
+  transition: width 0.2s ease-out;
 }
 
 .ui-hidden {

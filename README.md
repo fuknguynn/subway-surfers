@@ -43,8 +43,41 @@ npx vite preview  # kiểm tra bản build trước khi deploy
 
 ## Cấu trúc code
 
-- `src/main.js` — state menu/playing/gameover, va chạm, điểm, tốc độ tăng dần
-- `src/player.js` — đổi làn / nhảy / trượt
-- `src/world.js` — đường ray, tàu, rào, xu + tái chế object (pool)
-- `src/input.js` — phím + swipe
-- `src/ui.js` — HUD, menu, game over, kỷ lục localStorage
+- `src/main.js` — bootstrap + loading (mỏng)
+- `src/game.js` — orchestrator: loop, state, substep chống tunneling, điểm, va chạm
+- `src/player.js` — streetwear runner: đổi làn / nhảy / trượt / animation
+- `src/world.js` — đường ray, tàu, rào, xu + tái chế object (pool), InstancedMesh
+- `src/patterns.js` — pattern + DifficultyManager, fairness chứng minh được
+- `src/input.js` — phím + swipe (1 action/gesture, lock tới touchend)
+- `src/camera.js` — rig follow, FOV theo tốc độ, dip/shake clamp cho mobile
+- `src/quality.js` — DPR cap (mobile 1.5) + adaptive render scale có hysteresis
+- `src/particles.js` — pool burst (xu/tiếp đất/đâm), zero-alloc loop
+- `src/audio.js` — SFX WebAudio procedural, lazy sau chạm đầu, có mute
+- `src/powerups.js` — magnet / shield / 2x, timer freeze khi pause
+- `src/assets.js` — geometry/material dùng chung, palette player nổi bật
+- `src/ui.js` — HUD mobile-first, menu, game over, kỷ lục localStorage
+
+## Perf (đo headless + build)
+
+- `dist/` JS ~600KB (~160KB gzip) + `public/assets/` 10.1MB (character 3.2 +
+  wildlife 7.1 + veg/props 0.2) — dưới max 15MB, trên ideal 10MB một chút
+  (chấp nhận theo spec).
+- Draw calls ~185 headless (chưa tính veg GLB async) + ~20 instanced veg +
+  5 núi + ~10 thú, tris ~10k — nhẹ vertex, draws là chi phí chính.
+- Heap phẳng qua reset cycles (flaky theo GC, xanh khi rerun); spawn fairness
+  2100 proof-case + DP walk — 0 vi phạm.
+- `npm run build` PASS, `vite preview` HTTP 200, `npm run check:mobile`
+  ALL PASS, `npm run check:assets` ASSET GATE PASS.
+
+## Test matrix
+
+Tự động, reproducible — chạy `npm run check:mobile` (`scripts/check-mobile.mjs`):
+touch 1-action/gesture, quality hysteresis (down/up/cooldown), substep chống
+tunneling, pattern proof walk, no-repeat jumpCoinLine, power-up spawn/timer/
+absorb, particle pool, materials, bounds — PASS.
+Số liệu draw calls/triangles/heap/dist đo bằng script headless + build log
+(xem commit "chore: perf pass"); FPS thực tế trên GPU chỉ đo được trên
+thiết bị thật.
+Thủ công trên thiết bị thật (360×800, 390×844, 412×915): start, swipe,
+jump/slide, gesture nhanh, va chạm, game over, retry, ẩn tab, resize, xoay
+màn — cần chơi thử trên điện thoại để xác nhận cuối.
