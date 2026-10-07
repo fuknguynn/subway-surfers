@@ -63,8 +63,16 @@ Prior spec: `docs/superpowers/specs/2026-10-07-subway-surfers-3d-design.md`
 
 ## 3. Phase 2 — Visual upgrade (mobile budget)
 
-- Player: procedural low-poly runner (torso/head/arms/legs boxes); run cycle by
-  speed phase; slide pose; lean on lane change. Visual only.
+- Player: procedural low-poly streetwear runner (stylized proportions: slightly
+  oversized head, compact torso, chunky sneakers; strong silhouette, NOT a box
+  mannequin). Parts (all real geometry, not color-only): head + hair + backward
+  baseball cap with brim; oversized hoodie (collar/hood, sleeves) over skin-tone
+  arms with wristband; small backpack (subtle secondary bounce); loose
+  jogger/cargo pants as separated legs; chunky sneakers with contrasting soles.
+  Palette: cap dark navy, hoodie warm red/orange, pants charcoal/dark navy,
+  sneakers off-white with bright accent, backpack dark neutral, skin warm
+  natural tone. Environment uses lower contrast so the player stays the focal
+  point. Run cycle by speed phase; slide pose; lean on lane change. Visual only.
 - Obstacles with strong silhouettes: train (long body + cabin + emissive lights),
   low barrier warm color + chevrons = JUMP, high hanging barrier = SLIDE.
 - Coins: gold emissive-look, spin; visible at small sizes.
