@@ -32,10 +32,22 @@ export function createWorld(scene) {
   scene.add(sun);
 
   // Mặt đất + 3 dải ray (material dùng chung)
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(30, 220),
-    MAT.ground,
-  );
+  // Terrain gồ ghề ngoài làn chơi (|x|>4.5), giữa ray giữ phẳng gameplay
+  const groundGeo = new THREE.PlaneGeometry(64, 220, 32, 44);
+  {
+    const p = groundGeo.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i);
+      const y = p.getY(i); // trước rotate: y là chiều dọc plane
+      const ax = Math.abs(x);
+      if (ax > 4.5) {
+        const k = Math.min(1, (ax - 4.5) / 8);
+        p.setZ(i, k * (Math.sin(x * 0.35) * 0.9 + Math.sin(y * 0.12 + x) * 1.1));
+      }
+    }
+    groundGeo.computeVertexNormals();
+  }
+  const ground = new THREE.Mesh(groundGeo, MAT.ground);
   ground.rotation.x = -Math.PI / 2;
   ground.position.z = -80;
   scene.add(ground);
@@ -238,18 +250,37 @@ export function createWorld(scene) {
       }
       sleepers.instanceMatrix.needsUpdate = true;
 
+      // Hàng rào biến thể: đoạn có/không, cọc nghiêng/hỏng, thanh thiếu
       for (let i = 0; i < FENCE_N; i++) {
         let z = fenceZ[i] + dz;
         if (z > DESPAWN_Z) z -= 120;
         fenceZ[i] = z;
+        const gap = i % 10 >= 8; // đoạn trống
+        const broken = i % 7 === 3; // cọc gãy nghiêng
         for (let s = 0; s < 2; s++) {
           const x = s === 0 ? -FENCE_X : FENCE_X;
-          dummy.position.set(x, 0.55, z);
-          dummy.scale.set(1, 1, 1);
+          if (gap) {
+            dummy.position.set(0, -999, 0);
+            dummy.scale.setScalar(0.001);
+            dummy.rotation.set(0, 0, 0);
+          } else {
+            dummy.position.set(x, broken ? 0.35 : 0.55, z);
+            dummy.scale.set(1, broken ? 0.6 : 1, 1);
+            dummy.rotation.set(0, 0, broken ? (s === 0 ? 0.35 : -0.35) : 0);
+          }
           dummy.updateMatrix();
           postMesh.setMatrixAt(i * 2 + s, dummy.matrix);
           for (let r = 0; r < 2; r++) {
-            dummy.position.set(x, 0.45 + r * 0.35, z + 2);
+            const missing = gap || (broken && r === 1);
+            if (missing) {
+              dummy.position.set(0, -999, 0);
+              dummy.scale.setScalar(0.001);
+              dummy.rotation.set(0, 0, 0);
+            } else {
+              dummy.position.set(x, 0.45 + r * 0.35, z + 2);
+              dummy.scale.set(1, 1, 1);
+              dummy.rotation.set(0, 0, 0);
+            }
             dummy.updateMatrix();
             railMesh.setMatrixAt((i * 2 + s) * 2 + r, dummy.matrix);
           }

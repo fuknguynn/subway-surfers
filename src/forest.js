@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { MAT, part } from './assets.js';
+import { normalizeToHeight } from './scaleTable.js';
 
 // Rừng núi: chunk tái dùng + theme theo quãng đường (visual only).
 // Vegetation GLB render bằng InstancedMesh (mỗi model 1-2 draws cho mọi slot).
@@ -58,24 +59,26 @@ export function createForest(scene, assets, opts = {}) {
   const densityScale = quality === 'LOW' ? 0.5 : quality === 'HIGH' ? 1 : 0.75;
 
   const batches = []; // {imesh, slots: [{z, x, kind, y, s, rot}]}
-  const statics = []; // {obj, z, kind, span, follow?} — cabin camp
+  const backdrop = []; // {obj, z, span} — núi xa, parallax 0.05
+  const fogTarget = new THREE.Color(
+    scene.fog ? scene.fog.color.getHex() : FOG_TINT.deep,
+  );
   let ready = false;
   let theme = 'deep';
 
-  async function load() {
+  async function loadBatch(e, dir) {
     const base = (import.meta.env && import.meta.env.BASE_URL) || './';
-    for (const e of SLOT_PLAN) {
-      let model = null;
-      try {
-        model = await assets.loadModel(`veg-${e.id}`, `${base}assets/vegetation/${e.file}`);
-      } catch {
-        continue; // thiếu file lẻ: bỏ qua loại đó
-      }
+    let model = null;
+    try {
+      model = await assets.loadModel(`veg-${e.id}`, `${base}assets/${dir}/${e.file}`);
+    } catch {
+      return; // thiếu file lẻ: bỏ qua loại đó
+    }
       const prims = [];
       model.traverse((o) => {
         if (o.isMesh) prims.push({ geo: o.geometry, mat: o.material });
       });
-      if (!prims.length) continue;
+      if (!prims.length) return;
       const imeshes = prims.map(
         (p) => {
           const im = new THREE.InstancedMesh(p.geo, p.mat, e.count);
@@ -97,24 +100,60 @@ export function createForest(scene, assets, opts = {}) {
         });
       }
       batches.push({ imeshes, slots, kind: e.kind });
+  }
+
+  const CAMP_PLAN = [
+    { id: 'tent', file: 'tent.glb', count: 3, xs: [8], h: 2.2, kind: 'camp' },
+    { id: 'campfire', file: 'campfire.glb', count: 3, xs: [6.8], h: 0.6, kind: 'camp' },
+  ];
+
+  async function load() {
+    for (const e of SLOT_PLAN) await loadBatch(e, 'vegetation');
+    for (const e of CAMP_PLAN) await loadBatch(e, 'props');
+
+    // Background: núi + đồi xa (vượt tầm fog scene -> fog:false + haze tay, parallax 0.05)
+    try {
+      const base = (import.meta.env && import.meta.env.BASE_URL) || './';
+      const mtn = await assets.loadModel('bg-mountain', `${base}assets/props/mountain.glb`);
+      const sky = new THREE.Color(0x9fc8e0);
+      const defs = [
+        { h: 300, x: -140, z: -300 }, { h: 260, x: 30, z: -320 }, { h: 340, x: 170, z: -280 },
+        { h: 90, x: -70, z: -180 }, { h: 110, x: 110, z: -200 },
+      ];
+      for (const d of defs) {
+        const m = mtn.clone(true);
+        normalizeToHeight(m, d.h);
+        m.traverse((o) => {
+          if (o.isMesh) {
+            o.material = o.material.clone();
+            o.material.fog = false;
+            o.material.color.lerp(sky, 0.55);
+          }
+        });
+        m.position.set(d.x, 0, d.z);
+        group.add(m);
+        backdrop.push({ obj: m, z: d.z, span: 500 });
+      }
+    } catch {
+      // Không núi: trời + fog vẫn ổn
     }
-    // Trại gỗ procedural (cabin + mái + đèn + cột)
-    const cabin = part(3, 2.4, 3, MAT.houseB, -8.5, 1.2, -40);
-    const roof = part(3.6, 0.3, 3.6, MAT.pants, -8.5, 2.55, -40);
-    const lamp = part(0.25, 0.25, 0.25, MAT.glow, -6.5, 2.2, -40);
-    const pole = part(0.15, 2.2, 0.15, MAT.pants, -6.5, 1.1, -40);
-    for (const m of [cabin, roof, lamp, pole]) group.add(m);
-    statics.push({ obj: cabin, z: -40 });
-    statics.push({ obj: roof, z: -40, follow: cabin });
-    statics.push({ obj: lamp, z: -40, follow: cabin });
-    statics.push({ obj: pole, z: -40, follow: cabin });
     ready = true;
     applyTheme(theme);
   }
 
   function applyTheme(name) {
     theme = name;
-    if (scene.fog) scene.fog.color.setHex(FOG_TINT[name]);
+    if (scene.fog) fogTarget.set(FOG_TINT[name]);
+  }
+
+  // Lerp fog mượt (tránh cắt cảnh khi đổi theme); test được headless.
+  // Trả về delta kênh màu lớn nhất của bước này.
+  function stepFog(dt) {
+    if (!scene.fog) return 0;
+    const c = scene.fog.color;
+    const r0 = c.r, g0 = c.g, b0 = c.b;
+    c.lerp(fogTarget, 1 - Math.exp(-2 * dt));
+    return Math.max(Math.abs(c.r - r0), Math.abs(c.g - g0), Math.abs(c.b - b0));
   }
 
   const forest = {
@@ -122,10 +161,12 @@ export function createForest(scene, assets, opts = {}) {
     isReady: () => ready,
     theme,
     batchCount: () => batches.reduce((n, b) => n + b.imeshes.length, 0),
+    stepFog,
     setTheme: (name) => applyTheme(name),
     update(dt, speed, distanceM) {
       const t = themeAt(distanceM);
       if (t !== theme) applyTheme(t);
+      stepFog(dt);
       if (!ready) return;
       const dz = speed * dt;
       const d = DENSITY[theme];
@@ -152,14 +193,10 @@ export function createForest(scene, assets, opts = {}) {
         }
         for (const im of b.imeshes) im.instanceMatrix.needsUpdate = true;
       }
-      for (const s of statics) {
-        if (s.follow) {
-          s.obj.position.z = s.follow.position.z;
-          continue;
-        }
-        s.z += dz;
-        if (s.z > DESPAWN_Z + 6) s.z -= WRAP;
-        s.obj.position.z = s.z;
+      for (const b of backdrop) {
+        b.z += dz * 0.05; // parallax xa
+        if (b.z > -50) b.z -= b.span;
+        b.obj.position.z = b.z;
       }
     },
   };
