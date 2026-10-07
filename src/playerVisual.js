@@ -45,6 +45,8 @@ export function createPlayerVisual() {
     setModel(root, clips, wanted) {
       v.clearModel();
       clipMap = resolveClipMap(clips.map((c) => c.name), wanted);
+      // Quaternius nhìn về +z; game chạy về -z nên xoay mặt đi
+      root.rotation.y = Math.PI;
       holder.add(root);
       // Scale về chiều cao chuẩn (đo Box3 runtime, không đoán trước)
       const box = new THREE.Box3().setFromObject(root);

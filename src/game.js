@@ -109,8 +109,12 @@ export function createGame(container) {
   assets.loadModel('runner', `${import.meta.env.BASE_URL}assets/character/human_male.glb`)
     .then(() => {
       player.setGLBModel(assets.cloneModel('runner'), assets.getClips('runner'));
+      ui.hideLoading();
     })
-    .catch(() => player.useProcedural());
+    .catch(() => {
+      player.useProcedural();
+      ui.hideLoading();
+    });
 
   function start() {
     player.reset();
