@@ -10,6 +10,7 @@ import { createAudio } from './audio.js';
 import { createPowerups, MAGNET_RADIUS } from './powerups.js';
 import { createAssetManager } from './assetManager.js';
 import { createForest } from './forest.js';
+import { createWildlife } from './wildlife.js';
 import { LANES } from './player.js';
 
 export const SUBSTEP_MAX = 1 / 60;
@@ -71,6 +72,8 @@ export function createGame(container) {
   const assets = createAssetManager();
   const forest = createForest(scene, assets, { quality: quality.profile });
   forest.load().catch(() => {}); // GLB lẻ lỗi: rừng procedural/thưa vẫn chạy
+  const wildlife = createWildlife(scene, assets, { quality: quality.profile });
+  wildlife.load().catch(() => {}); // không thú: rừng vẫn sống
   let hitFlag = false;
 
   let state = 'menu'; // menu | playing | gameover (paused tách riêng)
@@ -121,6 +124,7 @@ export function createGame(container) {
     player.reset();
     world.reset();
     powerups.reset();
+    wildlife.reset();
     speed = BASE_SPEED;
     elapsed = 0;
     distance = 0;
@@ -263,6 +267,7 @@ export function createGame(container) {
     quality.noteFrame(dt * 1000);
     if (state === 'playing' && !paused) simulate(dt);
     forest.update(dt, state === 'playing' && !paused ? speed : 0, distance);
+    wildlife.update(dt, state === 'playing' && !paused ? speed : 0, distance, elapsed);
     player.visual.setState(visualState());
     player.visual.setLean(
       (LANES[player.laneIndex] - player.mesh.position.x) * 0.1,
