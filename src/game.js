@@ -4,6 +4,7 @@ import { createWorld, boxesOverlap } from './world.js';
 import { bindInput } from './input.js';
 import { createUI } from './ui.js';
 import { createQuality } from './quality.js';
+import { createCamera } from './camera.js';
 
 export const SUBSTEP_MAX = 1 / 60;
 export const BASE_SPEED = 12;
@@ -56,6 +57,9 @@ export function createGame(container) {
   const player = createPlayer(scene);
   const world = createWorld(scene);
   const quality = createQuality(renderer);
+  const camRig = createCamera(camera);
+  camRig.reframe(window.innerWidth / window.innerHeight);
+  let hitFlag = false;
 
   let state = 'menu'; // menu | playing | paused(hidden) — paused tách riêng
   let paused = false;
@@ -84,6 +88,8 @@ export function createGame(container) {
 
   function gameOver() {
     state = 'gameover';
+    hitFlag = true;
+    ui.flashHit();
     const isNewBest = score > best;
     if (isNewBest) {
       best = score;
@@ -111,6 +117,7 @@ export function createGame(container) {
         world.collectCoin(c);
         coins += 1;
         score += COIN_SCORE;
+        ui.pulseCoins();
       }
     }
     ui.setScore(score, coins);
@@ -148,6 +155,7 @@ export function createGame(container) {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     quality.applyDPR();
+    camRig.reframe(camera.aspect);
     updateRotateHint();
   });
   updateRotateHint();
@@ -166,6 +174,15 @@ export function createGame(container) {
     const dt = Math.min(clock.getDelta(), 0.05);
     quality.noteFrame(dt * 1000);
     if (state === 'playing' && !paused) simulate(dt);
+    camRig.update(dt, {
+      speed,
+      laneX: player.mesh.position.x,
+      grounded: player.grounded,
+      justLanded: player.justLanded,
+      hit: hitFlag,
+    });
+    player.justLanded = false;
+    hitFlag = false; // rig đã latch shake 0.3s, chỉ cần báo 1 frame
     renderer.render(scene, camera);
   }
   loop();

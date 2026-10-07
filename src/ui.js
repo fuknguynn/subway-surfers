@@ -8,6 +8,7 @@ export function createUI(handlers = {}) {
     <div id="ui-coins" class="ui-hidden">🪙 0</div>
     <div id="ui-paused" class="ui-hidden">Tạm dừng — bấm P để tiếp tục</div>
     <div id="ui-rotate" class="ui-hidden">📱 Xoay dọc điện thoại để chơi thoải mái hơn</div>
+    <div id="ui-flash" class="ui-hidden"></div>
     <div id="ui-menu" class="ui-overlay">
       <h1>🚇 Subway Mini 3D</h1>
       <p>← → đổi làn &nbsp;•&nbsp; ↑ nhảy &nbsp;•&nbsp; ↓ trượt<br/>Vuốt trên mobile • P tạm dừng</p>
@@ -25,6 +26,7 @@ export function createUI(handlers = {}) {
   const coinsEl = root.querySelector('#ui-coins');
   const pausedEl = root.querySelector('#ui-paused');
   const rotateEl = root.querySelector('#ui-rotate');
+  const flashEl = root.querySelector('#ui-flash');
   const menuEl = root.querySelector('#ui-menu');
   const overEl = root.querySelector('#ui-over');
 
@@ -48,6 +50,14 @@ export function createUI(handlers = {}) {
     showRotateHint(showHint) {
       if (showHint) show(rotateEl);
       else hide(rotateEl);
+    },
+    pulseCoins() {
+      coinsEl.style.transform = 'scale(1.35)';
+      setTimeout(() => { coinsEl.style.transform = ''; }, 120);
+    },
+    flashHit() {
+      show(flashEl);
+      setTimeout(() => hide(flashEl), 150);
     },
     showMenu(best) {
       hide(overEl);

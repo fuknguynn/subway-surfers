@@ -84,6 +84,8 @@ export function createPlayer(scene) {
     slideTimer: 0,
     baseHeight: BODY_H,
     phase: 0,
+    justLanded: false,
+    landTimer: 0,
 
     moveLane(dir) {
       const next = this.laneIndex + dir;
@@ -107,6 +109,8 @@ export function createPlayer(scene) {
       this.grounded = true;
       this.slideTimer = 0;
       this.phase = 0;
+      this.justLanded = false;
+      this.landTimer = 0;
       group.position.set(0, 0, 0);
       group.rotation.set(0, 0, 0);
       rig.scale.set(1, 1, 1);
@@ -129,6 +133,8 @@ export function createPlayer(scene) {
           group.position.y = 0;
           this.vy = 0;
           this.grounded = true;
+          this.justLanded = true; // game đọc rồi clear
+          this.landTimer = 0.12; // squash visual, không đụng bounds
         }
       }
 
@@ -155,11 +161,14 @@ export function createPlayer(scene) {
       pack.position.y = 0.95 + Math.abs(Math.sin(this.phase)) * 0.03;
 
       // Trượt: scale cả rig (đỉnh visual ≈ bounds trượt)
+      // Squash tiếp đất nhân thêm 0.9 — visual only, bounds giữ nguyên.
+      if (this.landTimer > 0) this.landTimer -= dt;
+      const squash = this.landTimer > 0 ? 0.9 : 1;
       if (this.slideTimer > 0) {
         this.slideTimer -= dt;
-        rig.scale.set(1, SLIDE_SCALE, 1);
+        rig.scale.set(1, SLIDE_SCALE * squash, 1);
       } else {
-        rig.scale.set(1, 1, 1);
+        rig.scale.set(1, squash, 1);
       }
     },
 

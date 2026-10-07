@@ -62,6 +62,17 @@ body {
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8);
 }
 
+#ui-flash {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 40, 30, 0.35);
+}
+
+#ui-coins {
+  transition: transform 0.12s ease-out;
+  display: inline-block;
+}
+
 .ui-overlay {
   position: absolute;
   inset: 0;
