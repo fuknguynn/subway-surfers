@@ -35,3 +35,42 @@ Mọi asset bên thứ ba trong `public/assets/` đều có entry ở đây. Kh�
 - Files used: `public/assets/vegetation/*.glb` (11 files, tổng ~90KB)
 - Modifications: không (dùng nguyên bản, instance lại trong game)
 - Approx production size: 0.1 MB
+
+## quaternius-animated-animals (wildlife)
+
+- Asset: Ultimate Animated Animals (Deer, Stag, Fox, Wolf — mỗi con giữ
+  Idle, Walk, Gallop, Eating; Deer/Stag 13→4 clips, Fox/Wolf 12→4 clips)
+- Original creator: Quaternius
+- Original source: https://quaternius.com/ (Ultimate Animated Animals pack)
+- GitHub source: https://github.com/agentkaerf/FreeModels
+  (`Ultimate Animated Animals - July 2021/glTF/*.gltf`, License.txt trong
+  pack ghi CC0-1.0; sparse checkout đúng 4 files)
+- License: CC0-1.0
+- Files used: `public/assets/wildlife/{deer,stag,fox,wolf}.glb`
+  (1.7–1.9MB mỗi con sau prune)
+- Modifications: xóa clips không dùng + prune accessor chết; không sửa
+  geometry/skeleton/clip giữ lại
+- Approx production size: 7.1 MB
+
+## kenney-props (camp/scenery nhỏ)
+
+- Asset: Nature Kit v2.1 (tent_detailedOpen, campfire_logs, bridge_wood,
+  sign, flower_redA, flower_yellowA, mushroom_red, mushroom_tan,
+  stump_round, stump_old) + hexagonkit stone_mountain
+- Original creator: Kenney (kenney.nl)
+- Original source: https://kenney.nl/assets/nature-kit
+- GitHub source: https://github.com/ETdoFresh/kenney.nl (mirror, CC0 quoted
+  từ kenney.nl; sparse checkout đúng 11 files .glb)
+- License: CC0-1.0
+- Files used: `public/assets/props/*.glb` (đổi tên ngắn: tent, campfire,
+  bridge_wood, sign, flower_red/yellow, mushroom_red/tan, stump_round/old,
+  mountain)
+- Modifications: không (dùng nguyên bản)
+- Approx production size: 0.1 MB
+
+## wanted/missing (chưa có nguồn GLB, KHÔNG fake)
+
+- rabbit, wild boar, birds, squirrel, butterfly (wildlife)
+- wooden cabin (camp) — dùng tent thay thế
+- railway lamp — bỏ hẳn, không chế cột đèn procedural
+- fern — dùng grass/bush thay thế
