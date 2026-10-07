@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import './style.css';
+import { createPlayer } from './player.js';
 
 export function initGame() {
   const container = document.getElementById('app');
@@ -12,18 +13,22 @@ export function initGame() {
     0.1,
     200,
   );
-  camera.position.set(0, 3, 6);
+  camera.position.set(0, 3.2, 6.5);
+  camera.lookAt(0, 1, -6);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   container.appendChild(renderer.domElement);
 
-  // Khối thử để xác nhận pipeline render (Task 1). Task sau thay bằng player/world.
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({ color: 0xff5533 }),
-  );
-  scene.add(mesh);
+  const player = createPlayer(scene);
+
+  // Input tạm để test Task 2 (Task 4 tách ra src/input.js)
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') player.moveLane(-1);
+    else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') player.moveLane(1);
+    else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') player.jump();
+    else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') player.slide();
+  });
 
   const light = new THREE.HemisphereLight(0xffffff, 0x334455, 1.2);
   scene.add(light);
@@ -38,12 +43,12 @@ export function initGame() {
   function loop() {
     requestAnimationFrame(loop);
     const dt = Math.min(clock.getDelta(), 0.05);
-    mesh.rotation.y += dt;
+    player.update(dt);
     renderer.render(scene, camera);
   }
   loop();
 
-  return { scene, camera, renderer };
+  return { scene, camera, renderer, player };
 }
 
 initGame();
