@@ -110,11 +110,20 @@ const assets = await import('../src/assets.js');
   check('particle pool constant', pts.poolSize() === 120 && pts.aliveCount() <= 120);
 }
 
-// 7. Shared materials + player bounds intact
+// 7. Shared materials + player bounds intact (budget nới theo env palette,
+// tất cả dùng chung, không material riêng lẻ) + draw calls headless
 {
-  check('distinct materials <= 16', assets.materialCount() <= 16);
-  const scene = { add() {} };
-  const pl = playerM.createPlayer(scene);
+  check('distinct shared materials <= 32', assets.materialCount() <= 32);
+  const THREE = await import('three');
+  const scene = new THREE.Scene();
+  const world = (await import('../src/world.js')).createWorld(scene);
+  (await import('../src/player.js')).createPlayer(scene);
+  for (let i = 0; i < 1500; i++) world.update(0.016, 20);
+  let draws = 0;
+  scene.traverse((o) => { if (o.visible && (o.isMesh || o.isPoints || o.isInstancedMesh)) draws++; });
+  check('draw calls < 170 (simple shaders)', draws <= 170);
+  const scene2 = { add() {} };
+  const pl = playerM.createPlayer(scene2);
   const b0 = pl.getBounds();
   pl.slide(); pl.update(0.1);
   check('bounds stand 1.9 / slide 0.7', b0.maxY === 1.9 && pl.getBounds().maxY === 0.7);
